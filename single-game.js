@@ -374,7 +374,7 @@ function buildSwat() {
   const spawn = () => {
     if (state.finished) return;
     const bug = document.createElement('button');
-    bug.type = 'button'; bug.className = 'bug-target flying-mosquito'; bug.innerHTML = '<span>🦟</span>'; bug.setAttribute('aria-label','拍掉蚊子');
+    bug.type = 'button'; bug.className = 'bug-target flying-mosquito'; bug.innerHTML = '<img src="assets/mosquito-real.png" alt="">'; bug.setAttribute('aria-label','拍掉蚊子');
     bug.style.left = `${4 + Math.random() * 70}%`; bug.style.top = `${10 + Math.random() * 65}%`;
     bug.style.setProperty('--fly-x', `${Math.round(-34 + Math.random() * 68)}px`);
     bug.style.setProperty('--fly-y', `${Math.round(-28 + Math.random() * 56)}px`);
@@ -382,7 +382,7 @@ function buildSwat() {
     bug.addEventListener('click', () => {
       if (bug.disabled || state.finished) return;
       bug.disabled = true; count += 1; $('#swatCount').textContent = count;
-      showSlap(bug); addDamage(); bug.textContent = '💥'; bug.classList.add('squashed');
+      showSlap(bug); addDamage(); bug.innerHTML = '<span class="bug-splat"></span>'; bug.classList.add('squashed');
       setScore(count * 20 - misses);
       if (count >= 15 && !completed) { completed = true; later(() => finish(true), 650); return; }
       later(() => { bug.remove(); spawn(); if (count >= 7 && Math.random() < .36) spawn(); }, 160);
