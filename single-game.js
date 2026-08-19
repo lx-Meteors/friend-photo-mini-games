@@ -1,0 +1,423 @@
+const $ = (selector) => document.querySelector(selector);
+const gameId = document.body.dataset.game;
+
+const configs = {
+  catch: { duration: 25, command: '接住！', sub: '连击加分，小心炸弹', success: '满载而归！', fail: '还差一点！', emoji: '🎁' },
+  hold: { duration: 24, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
+  find: { duration: 25, command: '找到他！', sub: '连续找出 8 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
+  style: { duration: 25, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
+  swat: { duration: 24, command: '拍掉！', sub: '连拍蚊子，避开蜜蜂', success: '无蚊体质！', fail: '今晚加餐！', emoji: '🦟' },
+  wake: { duration: 22, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
+  feed: { duration: 25, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
+  snap: { duration: 24, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
+  shake: { duration: 22, command: '摇醒！', sub: '三档加速，把魂摇回来', success: '满血复活！', fail: '还在梦游！', emoji: '🫨' },
+  wipe: { duration: 25, command: '擦干净！', sub: '污渍会反扑，快速清场', success: '焕然一新！', fail: '越擦越脏！', emoji: '🧻' }
+};
+
+const state = {
+  faces: [],
+  timer: null,
+  frame: null,
+  finished: false,
+  startedAt: 0,
+  launchTimeout: null,
+  extraTimeouts: [],
+  onTimeUp: null,
+  score: 0
+};
+
+const samples = [
+  avatar('阿橙', '#ff765d', '😎'), avatar('小蓝', '#61d5ff', '😳'),
+  avatar('大黄', '#ffd84d', '🤪'), avatar('桃子', '#ff8eb2', '😂')
+];
+
+function avatar(name, color, emoji) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" rx="52" fill="${color}"/><circle cx="150" cy="132" r="86" fill="#fff3d7"/><text x="150" y="169" font-size="92" text-anchor="middle">${emoji}</text><text x="150" y="268" font-family="sans-serif" font-size="31" font-weight="900" text-anchor="middle" fill="#1f1b2d">${name}</text></svg>`;
+  return { name, url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, sample: true };
+}
+
+function faces() { return state.faces.length ? state.faces : samples; }
+
+function renderPreview() {
+  const limit = gameId === 'find' ? 4 : 1;
+  $('#singlePreview').innerHTML = faces().slice(0, limit).map((face) => `<img src="${face.url}" alt="${face.name}">`).join('');
+}
+
+$('#singlePhotoInput').addEventListener('change', (event) => {
+  state.faces.forEach((face) => { if (!face.sample) URL.revokeObjectURL(face.url); });
+  state.faces = [...event.target.files].slice(0, gameId === 'find' ? 8 : 1).map((file, index) => ({
+    name: `主角 ${index + 1}`,
+    url: URL.createObjectURL(file),
+    sample: false
+  }));
+  renderPreview();
+});
+
+$('#singleStart').addEventListener('click', start);
+$('#singleAgain').addEventListener('click', start);
+$('#singleRestart').addEventListener('click', start);
+
+function start() {
+  clean();
+  state.finished = false;
+  state.score = 0;
+  state.onTimeUp = null;
+  $('.single-intro').hidden = true;
+  $('#singleResult').hidden = true;
+  $('.single-play').hidden = false;
+  $('#singleScore').textContent = '0 分';
+  $('#singleTimer span').style.transform = 'scaleX(1)';
+  $('#singleStage').innerHTML = `<div class="command-splash"><small>准备好了吗？</small><strong>${configs[gameId].command}</strong><span>${configs[gameId].sub}</span></div>`;
+  state.launchTimeout = setTimeout(() => {
+    const builders = { catch: buildCatch, hold: buildHold, find: buildFind, style: buildStyle, swat: buildSwat, wake: buildWake, feed: buildFeed, snap: buildSnap, shake: buildShake, wipe: buildWipe };
+    builders[gameId]();
+    startTimer(configs[gameId].duration);
+  }, 720);
+}
+
+function clean() {
+  clearInterval(state.timer);
+  clearTimeout(state.launchTimeout);
+  state.extraTimeouts.forEach(clearTimeout);
+  state.extraTimeouts = [];
+  cancelAnimationFrame(state.frame);
+  state.timer = null;
+  state.launchTimeout = null;
+  state.frame = null;
+  $('#singleStage').replaceChildren();
+  $('#singleFeedback').classList.remove('show');
+}
+
+function startTimer(seconds) {
+  const fill = $('#singleTimer span');
+  state.startedAt = performance.now();
+  fill.style.transform = 'scaleX(1)';
+  state.timer = setInterval(() => {
+    const progress = Math.min(1, (performance.now() - state.startedAt) / (seconds * 1000));
+    fill.style.transform = `scaleX(${1 - progress})`;
+    fill.style.background = progress > .72 ? '#ff3c3c' : '#ff5c35';
+    if (progress >= 1) {
+      clearInterval(state.timer);
+      if (state.onTimeUp) state.onTimeUp(); else finish(false);
+    }
+  }, 30);
+}
+
+function finish(success) {
+  if (state.finished) return;
+  state.finished = true;
+  clearInterval(state.timer);
+  cancelAnimationFrame(state.frame);
+  state.extraTimeouts.forEach(clearTimeout);
+  state.extraTimeouts = [];
+  const feedback = $('#singleFeedback');
+  feedback.textContent = success ? configs[gameId].success : configs[gameId].fail;
+  feedback.style.background = success ? 'var(--lime)' : 'var(--pink)';
+  feedback.classList.add('show');
+  const finalScore = Math.max(state.score, success ? 100 : 35);
+  $('#singleScore').textContent = `${finalScore} 分`;
+  setTimeout(() => {
+    $('.single-play').hidden = true;
+    $('#singleResult').hidden = false;
+    $('#singleResultEmoji').textContent = success ? configs[gameId].emoji : '💥';
+    $('#singleResultTitle').textContent = feedback.textContent;
+    $('#singleResultScore').textContent = `${finalScore} 分`;
+  }, 850);
+}
+
+function setScore(value) {
+  state.score = Math.max(0, Math.round(value));
+  $('#singleScore').textContent = `${state.score} 分`;
+}
+
+function later(callback, delay) {
+  const id = setTimeout(callback, delay);
+  state.extraTimeouts.push(id);
+  return id;
+}
+
+function buildCatch() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  stage.innerHTML = `<div class="counter-chip">得分 <b id="catchCount">0</b> · 连击 <b id="catchCombo">0</b></div><div class="catcher"><img class="face-bubble" src="${face.url}" alt="${face.name}"><div class="catch-basket">好运接收器</div></div>`;
+  const catcher = stage.querySelector('.catcher');
+  let x = stage.clientWidth / 2 - 50;
+  let points = 0, combo = 0;
+  let lastDrop = 0;
+  const items = [];
+  catcher.style.left = `${x}px`;
+  const move = (event) => {
+    const rect = stage.getBoundingClientRect();
+    x = Math.max(0, Math.min(rect.width - 100, event.clientX - rect.left - 50));
+    catcher.style.left = `${x}px`;
+  };
+  stage.addEventListener('pointerdown', move);
+  stage.addEventListener('pointermove', (event) => { if (event.buttons) move(event); });
+
+  function loop(time) {
+    if (state.finished) return;
+    if (time - lastDrop > 520) {
+      lastDrop = time;
+      const element = document.createElement('div');
+      element.className = 'falling-item';
+      const roll = Math.random();
+      const type = roll < .15 ? 'bomb' : roll < .30 ? 'rare' : 'normal';
+      element.textContent = type === 'bomb' ? '💣' : type === 'rare' ? '💎' : ['🍗', '💰', '⭐', '🍰', '🎁'][Math.floor(Math.random() * 5)];
+      if (type === 'bomb') element.classList.add('danger-item');
+      const item = { element, type, x: Math.random() * (stage.clientWidth - 50), y: -50, speed: 3.6 + Math.random() * 2.2 };
+      element.style.left = `${item.x}px`;
+      stage.appendChild(element);
+      items.push(item);
+    }
+    for (let index = items.length - 1; index >= 0; index--) {
+      const item = items[index];
+      item.y += item.speed;
+      item.element.style.transform = `translateY(${item.y}px) rotate(${item.y * 1.2}deg)`;
+      const hitY = stage.clientHeight - 135;
+      if (item.y > hitY && item.y < hitY + 45 && item.x + 45 > x && item.x < x + 100) {
+        item.element.remove(); items.splice(index, 1);
+        if (item.type === 'bomb') { points = Math.max(0, points - 15); combo = 0; catcher.classList.add('hit'); later(() => catcher.classList.remove('hit'), 220); }
+        else { combo += 1; points += (item.type === 'rare' ? 12 : 5) + Math.min(10, combo); }
+        $('#catchCount').textContent = points; $('#catchCombo').textContent = combo; setScore(points);
+      } else if (item.y > stage.clientHeight + 20) { item.element.remove(); items.splice(index, 1); if (item.type !== 'bomb') { combo = 0; $('#catchCombo').textContent = combo; } }
+    }
+    state.frame = requestAnimationFrame(loop);
+  }
+  state.onTimeUp = () => finish(points >= 80);
+  state.frame = requestAnimationFrame(loop);
+}
+
+function buildHold() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  stage.innerHTML = `<div class="hold-scene"><div class="counter-chip">定力 <b id="holdPercent">0</b>%</div><div class="hold-ring"></div><img class="hold-face" src="${face.url}" alt="${face.name}"><div class="hold-button">按住：保持正经</div><span class="distraction" style="left:9%;top:22%">🪿</span><span class="distraction" style="right:9%;top:30%">🍌</span><span class="distraction" style="left:14%;bottom:18%">🤡</span></div>`;
+  const button = stage.querySelector('.hold-button');
+  const ring = stage.querySelector('.hold-ring');
+  let holding = false, held = 0, previous = 0, releases = 0;
+  button.addEventListener('pointerdown', (event) => { event.preventDefault(); holding = true; button.classList.add('pressed'); button.setPointerCapture?.(event.pointerId); });
+  const release = () => { holding = false; button.classList.remove('pressed'); if (held > 150 && held < 15000) { releases += 1; held = Math.max(0, held - 1200); button.textContent = `松了 ${releases} 次！继续按`; } };
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  function loop(time) {
+    if (!previous) previous = time;
+    const delta = time - previous; previous = time;
+    if (holding) held += delta; else held = Math.max(0, held - delta * .16);
+    const progress = Math.min(1, held / 20000);
+    ring.style.transform = `rotate(${progress * 360}deg)`;
+    $('#holdPercent').textContent = Math.round(progress * 100); setScore(progress * 100 - releases * 3);
+    state.frame = requestAnimationFrame(loop);
+  }
+  state.onTimeUp = () => finish(held >= 16000);
+  state.frame = requestAnimationFrame(loop);
+}
+
+function buildFind() {
+  const stage = $('#singleStage');
+  const pool = [...faces()];
+  while (pool.length < 4) pool.push(samples[pool.length]);
+  let round = 0, correct = 0, mistakes = 0;
+  const nextRound = () => {
+    if (state.finished) return;
+    const shuffled = pool.slice(0, 4).sort(() => Math.random() - .5);
+    const target = shuffled[Math.floor(Math.random() * shuffled.length)];
+    $('#singlePrompt').textContent = `找对 ${correct}/8 · 目标：${target.name}`;
+    const grid = document.createElement('div'); grid.className = 'find-grid';
+    shuffled.forEach((face) => {
+      const card = document.createElement('button'); card.type = 'button'; card.className = 'find-card';
+      card.innerHTML = `<img src="${face.url}" alt="${face.name}"><span>${face.name}</span>`;
+      card.addEventListener('click', () => {
+        if (face === target) { correct += 1; round += 1; setScore(correct * 15 - mistakes * 5); nextRound(); }
+        else { mistakes += 1; setScore(correct * 15 - mistakes * 5); card.classList.remove('wrong'); void card.offsetWidth; card.classList.add('wrong'); }
+      });
+      grid.appendChild(card);
+    });
+    stage.replaceChildren(grid);
+  };
+  state.onTimeUp = () => finish(correct >= 6);
+  nextRound();
+}
+
+function buildStyle() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  const accessories = [{icon:'👑',label:'皇冠'}, {icon:'🕶️',label:'墨镜'}, {icon:'🎀',label:'蝴蝶结'}, {icon:'🎩',label:'礼帽'}];
+  let round = 0;
+  stage.innerHTML = `<div class="style-scene"><div class="counter-chip">造型 <b id="styleRound">1</b>/4</div><div class="style-target"><div class="drop-zone"></div><img src="${face.url}" alt="${face.name}"></div><div class="hat" aria-label="可拖动的造型配件">👑</div></div>`;
+  const hat = stage.querySelector('.hat'), zone = stage.querySelector('.drop-zone');
+  let drag = null;
+  hat.addEventListener('pointerdown', (event) => {
+    event.preventDefault(); const rect = hat.getBoundingClientRect();
+    drag = { dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+    hat.classList.add('dragging'); hat.setPointerCapture?.(event.pointerId);
+  });
+  hat.addEventListener('pointermove', (event) => {
+    if (!drag) return;
+    const rect = stage.getBoundingClientRect();
+    hat.style.left = `${event.clientX - rect.left - drag.dx}px`;
+    hat.style.top = `${event.clientY - rect.top - drag.dy}px`; hat.style.bottom = 'auto';
+  });
+  const drop = () => {
+    if (!drag) return; drag = null; hat.classList.remove('dragging');
+    const a = hat.getBoundingClientRect(), b = zone.getBoundingClientRect();
+    if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 25 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 20) {
+      round += 1; setScore(round * 25); $('#styleRound').textContent = Math.min(4, round + 1);
+      hat.textContent = accessories[round % accessories.length].icon; hat.setAttribute('aria-label', `可拖动的${accessories[round % accessories.length].label}`); hat.style.left = 'calc(50% - 45px)'; hat.style.top = 'auto'; hat.style.bottom = '25px';
+    }
+  };
+  hat.addEventListener('pointerup', drop);
+  hat.addEventListener('pointercancel', drop);
+  state.onTimeUp = () => finish(round >= 4);
+}
+
+function buildSwat() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  stage.innerHTML = `<div class="swat-scene"><img src="${face.url}" alt="${face.name}"><div class="counter-chip">蚊子 <b id="swatCount">0</b>/18 · 失误 <b id="swatMiss">0</b></div></div>`;
+  let count = 0, misses = 0;
+  const spawn = () => {
+    if (state.finished) return;
+    const bug = document.createElement('button');
+    const isBee = Math.random() < .2;
+    bug.type = 'button'; bug.className = `bug-target${isBee ? ' bee-target' : ''}`; bug.textContent = isBee ? '🐝' : '🦟';
+    bug.style.left = `${10 + Math.random() * 72}%`; bug.style.top = `${12 + Math.random() * 68}%`;
+    bug.addEventListener('click', () => {
+      bug.textContent = isBee ? '😵' : '💥'; bug.disabled = true;
+      if (isBee) { misses += 1; $('#swatMiss').textContent = misses; }
+      else { count += 1; $('#swatCount').textContent = count; }
+      setScore(count * 7 - misses * 12);
+      later(() => { bug.remove(); spawn(); }, 130);
+    });
+    stage.appendChild(bug);
+    later(() => { if (!bug.disabled && bug.isConnected) { bug.remove(); spawn(); } }, 1800);
+  };
+  spawn(); spawn();
+  state.onTimeUp = () => finish(count >= 12 && misses <= 4);
+}
+
+function buildWake() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  stage.innerHTML = `<div class="wake-scene"><div class="sleep-z">Z Z Z</div><div class="counter-chip">叫醒 <b id="wakeRounds">0</b>/2 次</div><div class="wake-meter"><span></span></div><button class="wake-face" type="button"><img src="${face.url}" alt="${face.name}"></button><b>清醒值 <span id="wakeCount">0</span>/100</b></div>`;
+  let energy = 0, previous = 0, wakeRounds = 0;
+  stage.querySelector('.wake-face').addEventListener('click', (event) => {
+    energy = Math.min(100, energy + 4); $('#wakeCount').textContent = Math.round(energy); setScore(wakeRounds * 100 + energy);
+    event.currentTarget.style.transform = `rotate(${energy % 8 < 4 ? -7 : 7}deg) scale(${1 + energy / 900})`;
+    if (energy >= 100) { wakeRounds += 1; $('#wakeRounds').textContent = wakeRounds; energy = 18; }
+  });
+  const meter = stage.querySelector('.wake-meter span');
+  const loop = (time) => {
+    if (!previous) previous = time;
+    const delta = time - previous; previous = time;
+    energy = Math.max(0, energy - delta * .0028); meter.style.transform = `scaleX(${energy / 100})`; $('#wakeCount').textContent = Math.round(energy);
+    state.frame = requestAnimationFrame(loop);
+  };
+  state.onTimeUp = () => finish(wakeRounds >= 2 || (wakeRounds === 1 && energy >= 75));
+  state.frame = requestAnimationFrame(loop);
+}
+
+function buildFeed() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  stage.innerHTML = `<div class="feed-scene"><div class="counter-chip">吃下 <b id="feedCount">0</b>/8 · 黑暗料理 <b id="badFoodCount">0</b></div><div class="feed-face"><img src="${face.url}" alt="${face.name}"><div class="mouth-zone">嘴</div></div><div class="food-tip">坏东西点一下丢掉</div><div class="food-drag" role="button" aria-label="可拖动的食物">🥟</div></div>`;
+  const food = stage.querySelector('.food-drag');
+  const mouth = stage.querySelector('.mouth-zone');
+  const goodFoods = ['🥟','🍓','🍗','🍰','🍙','🍕'];
+  const badFoods = ['🧼','🪨','🧦'];
+  let drag = null, eaten = 0, bad = 0, currentBad = false, skipClick = false;
+  const nextFood = () => {
+    currentBad = Math.random() < .23;
+    const pool = currentBad ? badFoods : goodFoods;
+    food.textContent = pool[Math.floor(Math.random() * pool.length)];
+    food.classList.toggle('bad-food', currentBad); food.style.left = 'calc(50% - 42px)'; food.style.top = 'auto'; food.style.bottom = '7%';
+  };
+  food.addEventListener('pointerdown', (event) => {
+    event.preventDefault(); const rect = food.getBoundingClientRect();
+    drag = { dx: event.clientX - rect.left, dy: event.clientY - rect.top };
+    food.setPointerCapture?.(event.pointerId); food.classList.add('dragging');
+  });
+  food.addEventListener('pointermove', (event) => {
+    if (!drag) return; const rect = stage.getBoundingClientRect();
+    food.style.left = `${event.clientX - rect.left - drag.dx}px`; food.style.top = `${event.clientY - rect.top - drag.dy}px`; food.style.bottom = 'auto';
+  });
+  food.addEventListener('pointerup', () => {
+    if (!drag) return; drag = null; food.classList.remove('dragging');
+    const a = food.getBoundingClientRect(), b = mouth.getBoundingClientRect();
+    if (Math.min(a.right,b.right)-Math.max(a.left,b.left) > 20 && Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top) > 15) {
+      skipClick = true; later(() => { skipClick = false; }, 0);
+      if (currentBad) { bad += 1; $('#badFoodCount').textContent = bad; }
+      else { eaten += 1; $('#feedCount').textContent = eaten; }
+      setScore(eaten * 15 - bad * 12);
+      nextFood();
+    }
+  });
+  food.addEventListener('click', () => {
+    if (currentBad && !drag && !skipClick) { setScore(state.score + 5); nextFood(); }
+  });
+  state.onTimeUp = () => finish(eaten >= 6 && bad <= 3);
+  nextFood();
+}
+
+function buildSnap() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  stage.innerHTML = `<div class="snap-scene"><div class="counter-chip">抓拍 <b id="snapCount">0</b>/5 · 抢跑 <b id="snapFalse">0</b></div><div class="snap-light">等一下…</div><img src="${face.url}" alt="${face.name}"><button class="shutter" type="button">📸 按快门</button></div>`;
+  const light = stage.querySelector('.snap-light');
+  const shutter = stage.querySelector('.shutter');
+  let ready = false, hits = 0, falseStarts = 0, roundLocked = false;
+  const nextRound = () => {
+    if (state.finished) return;
+    ready = false; roundLocked = false; light.textContent = '等一下…'; light.classList.remove('ready');
+    later(() => {
+      if (state.finished) return; ready = true; light.textContent = '现在！'; light.classList.add('ready');
+      later(() => { if (ready && !roundLocked) { ready = false; light.textContent = '错过！'; later(nextRound, 500); } }, 1050);
+    }, 1000 + Math.random() * 1700);
+  };
+  shutter.addEventListener('click', () => {
+    if (roundLocked) return;
+    if (ready) { roundLocked = true; ready = false; hits += 1; $('#snapCount').textContent = hits; setScore(hits * 22 - falseStarts * 8); light.textContent = '咔嚓！'; later(nextRound, 550); }
+    else { falseStarts += 1; $('#snapFalse').textContent = falseStarts; setScore(hits * 22 - falseStarts * 8); light.textContent = '太早！'; }
+  });
+  state.onTimeUp = () => finish(hits >= 4);
+  nextRound();
+}
+
+function buildShake() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  stage.innerHTML = `<div class="shake-scene"><div class="counter-chip">档位 <b id="shakeLevel">1</b>/3</div><img src="${face.url}" alt="${face.name}"><div class="shake-meter"><span></span></div><b id="shakeHint">← 热身：左右猛滑 →</b></div>`;
+  const image = stage.querySelector('img');
+  const fill = stage.querySelector('.shake-meter span');
+  let lastX = null, distance = 0, level = 1;
+  const move = (event) => {
+    if (lastX !== null) distance += Math.abs(event.clientX - lastX);
+    lastX = event.clientX; const progress = Math.min(1, distance / 3600);
+    fill.style.transform = `scaleX(${progress})`; image.style.transform = `translateX(${Math.sin(distance / 15) * 18}px) rotate(${Math.sin(distance / 10) * 6}deg)`;
+    const nextLevel = Math.min(3, Math.floor(progress * 3) + 1);
+    if (nextLevel !== level) { level = nextLevel; $('#shakeLevel').textContent = level; $('#shakeHint').textContent = level === 2 ? '← 加速！再用力 →' : '← 狂暴档！别停 →'; }
+    setScore(progress * 100);
+  };
+  stage.addEventListener('pointerdown', (event) => { lastX = event.clientX; stage.setPointerCapture?.(event.pointerId); });
+  stage.addEventListener('pointermove', (event) => { if (event.buttons) move(event); });
+  stage.addEventListener('pointerup', () => { lastX = null; });
+  state.onTimeUp = () => finish(distance >= 2800);
+}
+
+function buildWipe() {
+  const stage = $('#singleStage');
+  const face = faces()[0];
+  stage.innerHTML = `<div class="wipe-scene"><img src="${face.url}" alt="${face.name}"><div class="counter-chip">清理 <b id="wipeCount">0</b>/18 · 连击 <b id="wipeCombo">0</b></div></div>`;
+  let cleaned = 0, combo = 0, spawned = 0;
+  const spawnSpot = () => {
+    if (state.finished) return;
+    spawned += 1;
+    const spot = document.createElement('button'); spot.type = 'button'; spot.className = 'sauce-spot';
+    spot.textContent = ['🍅','🟤','🟡'][spawned % 3]; spot.style.left = `${20 + Math.random() * 58}%`; spot.style.top = `${18 + Math.random() * 57}%`;
+    const wipe = (event) => { event.preventDefault(); if (spot.disabled) return; spot.disabled = true; spot.classList.add('wiped'); cleaned += 1; combo += 1; $('#wipeCount').textContent = cleaned; $('#wipeCombo').textContent = combo; setScore(cleaned * 6 + combo); later(() => { spot.remove(); spawnSpot(); }, 220); };
+    spot.addEventListener('pointerdown', wipe); stage.appendChild(spot);
+    later(() => { if (!spot.disabled && spot.isConnected) { combo = 0; $('#wipeCombo').textContent = combo; } }, 2200);
+  };
+  for (let i = 0; i < 6; i += 1) spawnSpot();
+  state.onTimeUp = () => finish(cleaned >= 14);
+}
+
+renderPreview();
