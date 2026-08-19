@@ -117,9 +117,9 @@ function finish(success) {
   const finalScore = Math.max(state.score, success ? 100 : 35);
   if (gameId === 'swat') {
     const resultFace = $('#swatResultFace');
-    const damageLayer = $('.face-damage-layer');
+    const damageCanvas = $('#swatFaceCanvas');
     resultFace.hidden = false;
-    resultFace.innerHTML = `<img src="${faces()[0].url}" alt="${faces()[0].name} 的最终伤情"><div class="face-damage-layer">${damageLayer ? damageLayer.innerHTML : ''}</div>`;
+    resultFace.innerHTML = `<img src="${damageCanvas ? damageCanvas.toDataURL('image/jpeg', .92) : faces()[0].url}" alt="${faces()[0].name} 的最终伤情">`;
   }
   $('#singleScore').textContent = `${finalScore} 分`;
   setTimeout(() => {
@@ -278,24 +278,82 @@ function buildStyle() {
 function buildSwat() {
   const stage = $('#singleStage');
   const face = faces()[0];
-  stage.innerHTML = `<div class="swat-scene"><div class="counter-chip">拍中 <b id="swatCount">0</b>/15 · 漏掉 <b id="swatMiss">0</b></div><div class="swat-warning">蚊子正在围攻这张脸！</div><div id="swatFace" class="swat-face-wrap"><img src="${face.url}" alt="${face.name}"><div class="face-damage-layer" aria-hidden="true"></div><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼朋友</div></div>`;
+  stage.innerHTML = `<div class="swat-scene"><div class="counter-chip">拍中 <b id="swatCount">0</b>/15 · 漏掉 <b id="swatMiss">0</b></div><div class="swat-warning">蚊子正在围攻这张脸！</div><div id="swatFace" class="swat-face-wrap"><canvas id="swatFaceCanvas" width="420" height="420" role="img" aria-label="${face.name} 正在逐渐鼻青脸肿"></canvas><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼朋友</div></div>`;
   let count = 0, misses = 0, completed = false;
-  const damagePlan = [
-    ['slap','12%','42%','-18deg','✋'], ['bruise','23%','24%','-8deg',''],
-    ['bump','68%','17%','12deg',''], ['slap','58%','43%','16deg','✋'],
-    ['bruise','61%','26%','8deg',''], ['bandage','39%','67%','-12deg','🩹'],
-    ['bump','15%','12%','-8deg',''], ['slap','30%','48%','8deg','✋'],
-    ['bruise','42%','31%','4deg',''], ['bandage','67%','61%','15deg','🩹']
-  ];
+  const canvas = $('#swatFaceCanvas');
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  const sourceImage = new Image();
+
+  const drawCover = (targetContext, image, size) => {
+    const scale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
+    const sourceWidth = size / scale, sourceHeight = size / scale;
+    const sourceX = (image.naturalWidth - sourceWidth) / 2, sourceY = (image.naturalHeight - sourceHeight) / 2;
+    targetContext.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, size, size);
+  };
+
+  const bulgePixels = (imageData, centerX, centerY, radius, strength) => {
+    const { width, height, data } = imageData;
+    const source = new Uint8ClampedArray(data);
+    const minX = Math.max(0, Math.floor(centerX - radius)), maxX = Math.min(width - 1, Math.ceil(centerX + radius));
+    const minY = Math.max(0, Math.floor(centerY - radius)), maxY = Math.min(height - 1, Math.ceil(centerY + radius));
+    for (let y = minY; y <= maxY; y += 1) {
+      for (let x = minX; x <= maxX; x += 1) {
+        const dx = x - centerX, dy = y - centerY, distance = Math.hypot(dx, dy);
+        if (distance >= radius) continue;
+        const falloff = 1 - distance / radius;
+        const sampleScale = 1 - strength * falloff * falloff;
+        const sampleX = Math.max(0, Math.min(width - 1, Math.round(centerX + dx * sampleScale)));
+        const sampleY = Math.max(0, Math.min(height - 1, Math.round(centerY + dy * sampleScale)));
+        const from = (sampleY * width + sampleX) * 4, to = (y * width + x) * 4;
+        data[to] = source[from]; data[to + 1] = source[from + 1]; data[to + 2] = source[from + 2]; data[to + 3] = source[from + 3];
+      }
+    }
+  };
+
+  const paintBruise = (x, y, radiusX, radiusY, alpha) => {
+    context.save(); context.translate(x, y); context.scale(1, radiusY / radiusX); context.filter = 'blur(3px)'; context.globalCompositeOperation = 'multiply';
+    const bruise = context.createRadialGradient(0, 0, radiusX * .08, 0, 0, radiusX);
+    bruise.addColorStop(0, `rgba(38,15,55,${alpha})`); bruise.addColorStop(.38, `rgba(77,38,104,${alpha * .82})`);
+    bruise.addColorStop(.68, `rgba(112,74,128,${alpha * .48})`); bruise.addColorStop(.86, `rgba(170,143,48,${alpha * .28})`); bruise.addColorStop(1, 'rgba(90,40,100,0)');
+    context.fillStyle = bruise; context.beginPath(); context.arc(0, 0, radiusX, 0, Math.PI * 2); context.fill(); context.restore();
+  };
+
+  const paintPalmPrint = (x, y, scale, rotation, alpha) => {
+    context.save(); context.translate(x, y); context.rotate(rotation); context.scale(scale, scale); context.filter = 'blur(2.2px)'; context.globalCompositeOperation = 'multiply';
+    context.fillStyle = `rgba(124,18,42,${alpha})`; context.beginPath(); context.ellipse(0, 12, 29, 35, 0, 0, Math.PI * 2); context.fill();
+    context.lineWidth = 13; context.lineCap = 'round';
+    [[-23,-8,-35,-48],[-10,-17,-15,-61],[3,-19,4,-66],[16,-14,23,-58],[26,-4,39,-42]].forEach(([x1,y1,x2,y2]) => { context.beginPath(); context.moveTo(x1,y1); context.lineTo(x2,y2); context.strokeStyle = `rgba(124,18,42,${alpha * .9})`; context.stroke(); });
+    context.restore();
+  };
+
+  const renderDamagedFace = () => {
+    if (!sourceImage.complete || !sourceImage.naturalWidth) return;
+    const size = canvas.width;
+    context.clearRect(0, 0, size, size); drawCover(context, sourceImage, size);
+    if (!count) return;
+    const severity = Math.min(1, count / 15);
+    const pixels = context.getImageData(0, 0, size, size);
+    bulgePixels(pixels, size * .29, size * .57, size * .25, .05 + severity * .16);
+    if (count >= 5) bulgePixels(pixels, size * .71, size * .56, size * .23, .03 + severity * .13);
+    context.putImageData(pixels, 0, 0);
+
+    context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
+    const leftRed = context.createRadialGradient(size*.28,size*.58,4,size*.28,size*.58,size*.26);
+    leftRed.addColorStop(0,`rgba(218,45,58,${.18 + severity * .32})`); leftRed.addColorStop(1,'rgba(218,45,58,0)'); context.fillStyle=leftRed; context.fillRect(0,0,size,size);
+    if (count >= 5) { const rightRed=context.createRadialGradient(size*.72,size*.57,4,size*.72,size*.57,size*.24); rightRed.addColorStop(0,`rgba(204,37,57,${severity*.34})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
+    context.restore();
+
+    if (count >= 2) paintPalmPrint(size * .25, size * .60, .78, -.2, Math.min(.34, .11 + severity * .22));
+    if (count >= 7) paintPalmPrint(size * .73, size * .59, .72, .22, Math.min(.3, severity * .25));
+    if (count >= 3) paintBruise(size * .34, size * .37, size * .16, size * .085, Math.min(.66, .22 + severity * .48));
+    if (count >= 8) paintBruise(size * .65, size * .375, size * .15, size * .09, Math.min(.6, severity * .52));
+    if (count >= 12) { context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.18)'; context.beginPath(); context.ellipse(size*.51,size*.34,size*.30,size*.17,0,0,Math.PI*2); context.fill(); context.restore(); }
+  };
+  sourceImage.addEventListener('load', renderDamagedFace);
+  sourceImage.src = face.url;
 
   const addDamage = () => {
-    const layer = stage.querySelector('.face-damage-layer');
-    const [type, left, top, rotate, icon] = damagePlan[(count - 1) % damagePlan.length];
-    const mark = document.createElement('span');
-    mark.className = `damage-mark damage-${type}`;
-    mark.style.left = left; mark.style.top = top; mark.style.setProperty('--mark-rotate', rotate);
-    mark.textContent = icon;
-    layer.appendChild(mark);
+    renderDamagedFace();
     const faceWrap = $('#swatFace');
     faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
     faceWrap.dataset.damage = Math.min(5, Math.ceil(count / 4));

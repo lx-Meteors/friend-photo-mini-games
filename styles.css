@@ -828,11 +828,11 @@ body[data-game="swat"] .game-stage {
 .swat-scene .counter-chip{top:10px;left:10px;z-index:8;padding:5px 8px;background:var(--yellow);font-size:10px}
 .swat-warning{position:absolute;z-index:7;top:12px;right:8px;max-width:135px;padding:4px 7px;border:2px solid var(--ink);color:white;background:var(--orange);font-size:8px;font-weight:950;transform:rotate(2deg)}
 .swat-face-wrap{position:relative;width:76%;aspect-ratio:1;margin-top:12px;border:6px solid white;outline:3px solid var(--ink);border-radius:45% 55% 48% 52%;background:white;box-shadow:9px 10px 0 var(--ink);transition:filter .25s}
-.swat-face-wrap>img{display:block;width:100%;height:100%;border-radius:inherit;object-fit:cover;transition:filter .25s,transform .25s}
-.swat-face-wrap[data-damage="2"]>img{filter:saturate(1.15) contrast(1.05)}
-.swat-face-wrap[data-damage="3"]>img{filter:saturate(1.25) contrast(1.08) hue-rotate(-5deg);transform:scale(1.02) rotate(-1deg)}
-.swat-face-wrap[data-damage="4"]>img{filter:saturate(1.35) contrast(1.12) hue-rotate(-9deg);transform:scale(1.035) rotate(1.5deg)}
-.swat-face-wrap[data-damage="5"]>img{filter:saturate(1.45) contrast(1.15) hue-rotate(-13deg);transform:scale(1.05) rotate(-2deg)}
+.swat-face-wrap>canvas{display:block;width:100%;height:100%;border-radius:inherit;object-fit:cover;transition:filter .25s,transform .25s}
+.swat-face-wrap[data-damage="2"]>canvas{filter:saturate(1.06) contrast(1.03)}
+.swat-face-wrap[data-damage="3"]>canvas{filter:saturate(1.1) contrast(1.04);transform:scale(1.012) rotate(-.5deg)}
+.swat-face-wrap[data-damage="4"]>canvas{filter:saturate(1.13) contrast(1.05);transform:scale(1.02) rotate(.8deg)}
+.swat-face-wrap[data-damage="5"]>canvas{filter:saturate(1.16) contrast(1.06);transform:scale(1.025) rotate(-1deg)}
 .swat-face-wrap.just-slapped{animation:friend-slap .34s cubic-bezier(.2,1.3,.3,1)}
 @keyframes friend-slap{35%{transform:translateX(12px) rotate(5deg) scale(.96)}70%{transform:translateX(-7px) rotate(-3deg) scale(1.03)}}
 .face-damage-layer{position:absolute;z-index:3;inset:0;overflow:hidden;border-radius:inherit;pointer-events:none}
