@@ -6,7 +6,7 @@ const configs = {
   hold: { duration: 15, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
   find: { duration: 30, command: '找到他！', sub: '连续找出 10 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
   style: { duration: 15, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
-  swat: { duration: 30, command: '拍掉！', sub: '连拍蚊子，避开蜜蜂', success: '无蚊体质！', fail: '今晚加餐！', emoji: '🦟' },
+  swat: { duration: 30, command: '拍掉！', sub: '蚊子拍掉，朋友拍肿', success: '蚊子没了，脸也肿了！', fail: '蚊子吃饱，朋友挨好！', emoji: '🤕' },
   wake: { duration: 15, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
   feed: { duration: 30, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
   snap: { duration: 30, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
@@ -115,6 +115,12 @@ function finish(success) {
   feedback.style.background = success ? 'var(--lime)' : 'var(--pink)';
   feedback.classList.add('show');
   const finalScore = Math.max(state.score, success ? 100 : 35);
+  if (gameId === 'swat') {
+    const resultFace = $('#swatResultFace');
+    const damageLayer = $('.face-damage-layer');
+    resultFace.hidden = false;
+    resultFace.innerHTML = `<img src="${faces()[0].url}" alt="${faces()[0].name} 的最终伤情"><div class="face-damage-layer">${damageLayer ? damageLayer.innerHTML : ''}</div>`;
+  }
   $('#singleScore').textContent = `${finalScore} 分`;
   setTimeout(() => {
     $('.single-play').hidden = true;
@@ -272,26 +278,66 @@ function buildStyle() {
 function buildSwat() {
   const stage = $('#singleStage');
   const face = faces()[0];
-  stage.innerHTML = `<div class="swat-scene"><img src="${face.url}" alt="${face.name}"><div class="counter-chip">蚊子 <b id="swatCount">0</b>/20 · 失误 <b id="swatMiss">0</b></div></div>`;
-  let count = 0, misses = 0;
+  stage.innerHTML = `<div class="swat-scene"><div class="counter-chip">拍中 <b id="swatCount">0</b>/15 · 漏掉 <b id="swatMiss">0</b></div><div class="swat-warning">蚊子正在围攻这张脸！</div><div id="swatFace" class="swat-face-wrap"><img src="${face.url}" alt="${face.name}"><div class="face-damage-layer" aria-hidden="true"></div><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼朋友</div></div>`;
+  let count = 0, misses = 0, completed = false;
+  const damagePlan = [
+    ['slap','12%','42%','-18deg','✋'], ['bruise','23%','24%','-8deg',''],
+    ['bump','68%','17%','12deg',''], ['slap','58%','43%','16deg','✋'],
+    ['bruise','61%','26%','8deg',''], ['bandage','39%','67%','-12deg','🩹'],
+    ['bump','15%','12%','-8deg',''], ['slap','30%','48%','8deg','✋'],
+    ['bruise','42%','31%','4deg',''], ['bandage','67%','61%','15deg','🩹']
+  ];
+
+  const addDamage = () => {
+    const layer = stage.querySelector('.face-damage-layer');
+    const [type, left, top, rotate, icon] = damagePlan[(count - 1) % damagePlan.length];
+    const mark = document.createElement('span');
+    mark.className = `damage-mark damage-${type}`;
+    mark.style.left = left; mark.style.top = top; mark.style.setProperty('--mark-rotate', rotate);
+    mark.textContent = icon;
+    layer.appendChild(mark);
+    const faceWrap = $('#swatFace');
+    faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
+    faceWrap.dataset.damage = Math.min(5, Math.ceil(count / 4));
+    $('#faceCondition').textContent = count < 4 ? '目前：脸有点红' : count < 8 ? '目前：逐渐肿胀' : count < 13 ? '目前：鼻青脸肿' : count < 18 ? '目前：亲妈难认' : '目前：建议报警';
+  };
+
+  const showSlap = (bug) => {
+    const stageRect = stage.getBoundingClientRect();
+    const bugRect = bug.getBoundingClientRect();
+    const slap = document.createElement('span');
+    slap.className = 'slap-fx'; slap.textContent = '✋';
+    slap.style.left = `${bugRect.left - stageRect.left + bugRect.width / 2}px`;
+    slap.style.top = `${bugRect.top - stageRect.top + bugRect.height / 2}px`;
+    const word = document.createElement('b'); word.className = 'slap-word'; word.textContent = ['啪！','啪叽！','拍肿！','好响！'][count % 4];
+    slap.appendChild(word); stage.appendChild(slap); later(() => slap.remove(), 520);
+  };
+
   const spawn = () => {
     if (state.finished) return;
     const bug = document.createElement('button');
-    const isBee = Math.random() < .2;
-    bug.type = 'button'; bug.className = `bug-target${isBee ? ' bee-target' : ''}`; bug.textContent = isBee ? '🐝' : '🦟';
-    bug.style.left = `${10 + Math.random() * 72}%`; bug.style.top = `${12 + Math.random() * 68}%`;
+    bug.type = 'button'; bug.className = 'bug-target flying-mosquito'; bug.innerHTML = '<span>🦟</span>'; bug.setAttribute('aria-label','拍掉蚊子');
+    bug.style.left = `${4 + Math.random() * 70}%`; bug.style.top = `${10 + Math.random() * 65}%`;
+    bug.style.setProperty('--fly-x', `${Math.round(-34 + Math.random() * 68)}px`);
+    bug.style.setProperty('--fly-y', `${Math.round(-28 + Math.random() * 56)}px`);
+    bug.style.setProperty('--fly-time', `${(1.05 + Math.random() * .65).toFixed(2)}s`);
     bug.addEventListener('click', () => {
-      bug.textContent = isBee ? '😵' : '💥'; bug.disabled = true;
-      if (isBee) { misses += 1; $('#swatMiss').textContent = misses; }
-      else { count += 1; $('#swatCount').textContent = count; }
-      setScore(count * 7 - misses * 12);
-      later(() => { bug.remove(); spawn(); }, 130);
+      if (bug.disabled || state.finished) return;
+      bug.disabled = true; count += 1; $('#swatCount').textContent = count;
+      showSlap(bug); addDamage(); bug.textContent = '💥'; bug.classList.add('squashed');
+      setScore(count * 20 - misses);
+      if (count >= 15 && !completed) { completed = true; later(() => finish(true), 650); return; }
+      later(() => { bug.remove(); spawn(); if (count >= 7 && Math.random() < .36) spawn(); }, 160);
     });
     stage.appendChild(bug);
-    later(() => { if (!bug.disabled && bug.isConnected) { bug.remove(); spawn(); } }, 1800);
+    later(() => {
+      if (!bug.disabled && bug.isConnected && !state.finished) {
+        bug.remove(); misses += 1; $('#swatMiss').textContent = misses; setScore(count * 20 - misses); spawn();
+      }
+    }, Math.max(1800, 3300 - count * 34));
   };
-  spawn(); spawn();
-  state.onTimeUp = () => finish(count >= 18 && misses <= 5);
+  spawn(); spawn(); spawn();
+  state.onTimeUp = () => finish(count >= 10);
 }
 
 function buildWake() {
