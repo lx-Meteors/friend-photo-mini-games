@@ -2,16 +2,16 @@ const $ = (selector) => document.querySelector(selector);
 const gameId = document.body.dataset.game;
 
 const configs = {
-  catch: { duration: 25, command: '接住！', sub: '连击加分，小心炸弹', success: '满载而归！', fail: '还差一点！', emoji: '🎁' },
-  hold: { duration: 24, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
-  find: { duration: 25, command: '找到他！', sub: '连续找出 8 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
-  style: { duration: 25, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
-  swat: { duration: 24, command: '拍掉！', sub: '连拍蚊子，避开蜜蜂', success: '无蚊体质！', fail: '今晚加餐！', emoji: '🦟' },
-  wake: { duration: 22, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
-  feed: { duration: 25, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
-  snap: { duration: 24, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
-  shake: { duration: 22, command: '摇醒！', sub: '三档加速，把魂摇回来', success: '满血复活！', fail: '还在梦游！', emoji: '🫨' },
-  wipe: { duration: 25, command: '擦干净！', sub: '污渍会反扑，快速清场', success: '焕然一新！', fail: '越擦越脏！', emoji: '🧻' }
+  catch: { duration: 30, command: '接住！', sub: '连击加分，小心炸弹', success: '满载而归！', fail: '还差一点！', emoji: '🎁' },
+  hold: { duration: 15, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
+  find: { duration: 30, command: '找到他！', sub: '连续找出 10 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
+  style: { duration: 15, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
+  swat: { duration: 30, command: '拍掉！', sub: '连拍蚊子，避开蜜蜂', success: '无蚊体质！', fail: '今晚加餐！', emoji: '🦟' },
+  wake: { duration: 15, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
+  feed: { duration: 30, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
+  snap: { duration: 30, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
+  shake: { duration: 15, command: '摇醒！', sub: '三档加速，把魂摇回来', success: '满血复活！', fail: '还在梦游！', emoji: '🫨' },
+  wipe: { duration: 15, command: '擦干净！', sub: '污渍会反扑，快速清场', success: '焕然一新！', fail: '越擦越脏！', emoji: '🧻' }
 };
 
 const state = {
@@ -183,7 +183,7 @@ function buildCatch() {
     }
     state.frame = requestAnimationFrame(loop);
   }
-  state.onTimeUp = () => finish(points >= 80);
+  state.onTimeUp = () => finish(points >= 100);
   state.frame = requestAnimationFrame(loop);
 }
 
@@ -202,12 +202,12 @@ function buildHold() {
     if (!previous) previous = time;
     const delta = time - previous; previous = time;
     if (holding) held += delta; else held = Math.max(0, held - delta * .16);
-    const progress = Math.min(1, held / 20000);
+    const progress = Math.min(1, held / 11000);
     ring.style.transform = `rotate(${progress * 360}deg)`;
     $('#holdPercent').textContent = Math.round(progress * 100); setScore(progress * 100 - releases * 3);
     state.frame = requestAnimationFrame(loop);
   }
-  state.onTimeUp = () => finish(held >= 16000);
+  state.onTimeUp = () => finish(held >= 9000);
   state.frame = requestAnimationFrame(loop);
 }
 
@@ -220,7 +220,7 @@ function buildFind() {
     if (state.finished) return;
     const shuffled = pool.slice(0, 4).sort(() => Math.random() - .5);
     const target = shuffled[Math.floor(Math.random() * shuffled.length)];
-    $('#singlePrompt').textContent = `找对 ${correct}/8 · 目标：${target.name}`;
+    $('#singlePrompt').textContent = `找对 ${correct}/10 · 目标：${target.name}`;
     const grid = document.createElement('div'); grid.className = 'find-grid';
     shuffled.forEach((face) => {
       const card = document.createElement('button'); card.type = 'button'; card.className = 'find-card';
@@ -233,7 +233,7 @@ function buildFind() {
     });
     stage.replaceChildren(grid);
   };
-  state.onTimeUp = () => finish(correct >= 6);
+  state.onTimeUp = () => finish(correct >= 8);
   nextRound();
 }
 
@@ -272,7 +272,7 @@ function buildStyle() {
 function buildSwat() {
   const stage = $('#singleStage');
   const face = faces()[0];
-  stage.innerHTML = `<div class="swat-scene"><img src="${face.url}" alt="${face.name}"><div class="counter-chip">蚊子 <b id="swatCount">0</b>/18 · 失误 <b id="swatMiss">0</b></div></div>`;
+  stage.innerHTML = `<div class="swat-scene"><img src="${face.url}" alt="${face.name}"><div class="counter-chip">蚊子 <b id="swatCount">0</b>/20 · 失误 <b id="swatMiss">0</b></div></div>`;
   let count = 0, misses = 0;
   const spawn = () => {
     if (state.finished) return;
@@ -291,7 +291,7 @@ function buildSwat() {
     later(() => { if (!bug.disabled && bug.isConnected) { bug.remove(); spawn(); } }, 1800);
   };
   spawn(); spawn();
-  state.onTimeUp = () => finish(count >= 12 && misses <= 4);
+  state.onTimeUp = () => finish(count >= 18 && misses <= 5);
 }
 
 function buildWake() {
@@ -318,7 +318,7 @@ function buildWake() {
 function buildFeed() {
   const stage = $('#singleStage');
   const face = faces()[0];
-  stage.innerHTML = `<div class="feed-scene"><div class="counter-chip">吃下 <b id="feedCount">0</b>/8 · 黑暗料理 <b id="badFoodCount">0</b></div><div class="feed-face"><img src="${face.url}" alt="${face.name}"><div class="mouth-zone">嘴</div></div><div class="food-tip">坏东西点一下丢掉</div><div class="food-drag" role="button" aria-label="可拖动的食物">🥟</div></div>`;
+  stage.innerHTML = `<div class="feed-scene"><div class="counter-chip">吃下 <b id="feedCount">0</b>/10 · 黑暗料理 <b id="badFoodCount">0</b></div><div class="feed-face"><img src="${face.url}" alt="${face.name}"><div class="mouth-zone">嘴</div></div><div class="food-tip">坏东西点一下丢掉</div><div class="food-drag" role="button" aria-label="可拖动的食物">🥟</div></div>`;
   const food = stage.querySelector('.food-drag');
   const mouth = stage.querySelector('.mouth-zone');
   const goodFoods = ['🥟','🍓','🍗','🍰','🍙','🍕'];
@@ -353,7 +353,7 @@ function buildFeed() {
   food.addEventListener('click', () => {
     if (currentBad && !drag && !skipClick) { setScore(state.score + 5); nextFood(); }
   });
-  state.onTimeUp = () => finish(eaten >= 6 && bad <= 3);
+  state.onTimeUp = () => finish(eaten >= 8 && bad <= 3);
   nextFood();
 }
 
@@ -390,7 +390,7 @@ function buildShake() {
   let lastX = null, distance = 0, level = 1;
   const move = (event) => {
     if (lastX !== null) distance += Math.abs(event.clientX - lastX);
-    lastX = event.clientX; const progress = Math.min(1, distance / 3600);
+    lastX = event.clientX; const progress = Math.min(1, distance / 2500);
     fill.style.transform = `scaleX(${progress})`; image.style.transform = `translateX(${Math.sin(distance / 15) * 18}px) rotate(${Math.sin(distance / 10) * 6}deg)`;
     const nextLevel = Math.min(3, Math.floor(progress * 3) + 1);
     if (nextLevel !== level) { level = nextLevel; $('#shakeLevel').textContent = level; $('#shakeHint').textContent = level === 2 ? '← 加速！再用力 →' : '← 狂暴档！别停 →'; }
@@ -399,13 +399,13 @@ function buildShake() {
   stage.addEventListener('pointerdown', (event) => { lastX = event.clientX; stage.setPointerCapture?.(event.pointerId); });
   stage.addEventListener('pointermove', (event) => { if (event.buttons) move(event); });
   stage.addEventListener('pointerup', () => { lastX = null; });
-  state.onTimeUp = () => finish(distance >= 2800);
+  state.onTimeUp = () => finish(distance >= 2000);
 }
 
 function buildWipe() {
   const stage = $('#singleStage');
   const face = faces()[0];
-  stage.innerHTML = `<div class="wipe-scene"><img src="${face.url}" alt="${face.name}"><div class="counter-chip">清理 <b id="wipeCount">0</b>/18 · 连击 <b id="wipeCombo">0</b></div></div>`;
+  stage.innerHTML = `<div class="wipe-scene"><img src="${face.url}" alt="${face.name}"><div class="counter-chip">清理 <b id="wipeCount">0</b>/15 · 连击 <b id="wipeCombo">0</b></div></div>`;
   let cleaned = 0, combo = 0, spawned = 0;
   const spawnSpot = () => {
     if (state.finished) return;
@@ -417,7 +417,7 @@ function buildWipe() {
     later(() => { if (!spot.disabled && spot.isConnected) { combo = 0; $('#wipeCombo').textContent = combo; } }, 2200);
   };
   for (let i = 0; i < 6; i += 1) spawnSpot();
-  state.onTimeUp = () => finish(cleaned >= 14);
+  state.onTimeUp = () => finish(cleaned >= 12);
 }
 
 renderPreview();
