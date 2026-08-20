@@ -1070,6 +1070,23 @@ body[data-game="swat"] .mini-upload{
   margin-top:12px;
   padding:8px 10px;
 }
+body[data-game="swat"] .mini-upload.detecting{
+  color:#5e5664;
+  background:#fff7d0;
+  animation:face-scan 1s ease-in-out infinite alternate;
+}
+body[data-game="swat"] .mini-upload.face-found{
+  color:#13783d;
+  background:#e8ffe8;
+}
+body[data-game="swat"] .single-intro .primary-button:disabled{
+  opacity:.58;
+  cursor:wait;
+  filter:grayscale(.45);
+}
+@keyframes face-scan{
+  to{box-shadow:3px 4px 0 var(--pink),inset 0 -4px 0 var(--blue)}
+}
 body[data-game="swat"] .single-intro .primary-button{
   min-height:48px;
   margin-top:11px;

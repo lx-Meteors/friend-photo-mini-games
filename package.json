@@ -5,5 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "check": "node --check game.js && node --check single-game.js && node --check server.js"
+  },
+  "dependencies": {
+    "face-api.js": "0.22.2"
   }
 }

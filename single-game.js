@@ -43,14 +43,118 @@ function renderPreview() {
   $('#singlePreview').innerHTML = faces().slice(0, limit).map((face) => `<img src="${face.url}" alt="${face.name}">`).join('');
 }
 
-$('#singlePhotoInput').addEventListener('change', (event) => {
-  state.faces.forEach((face) => { if (!face.sample) URL.revokeObjectURL(face.url); });
-  state.faces = [...event.target.files].slice(0, gameId === 'find' ? 8 : 1).map((file, index) => ({
-    name: `主角 ${index + 1}`,
-    url: URL.createObjectURL(file),
-    sample: false
-  }));
+let faceModelPromise = null;
+
+function loadPhoto(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image), { once: true });
+    image.addEventListener('error', reject, { once: true });
+    image.src = url;
+  });
+}
+
+function clamp(value, minimum, maximum) {
+  return Math.max(minimum, Math.min(maximum, value));
+}
+
+function canvasToObjectUrl(canvas) {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/jpeg', .92)), 'image/jpeg', .92);
+  });
+}
+
+async function ensureFaceModel() {
+  if (!window.faceapi) throw new Error('face detector unavailable');
+  if (!faceModelPromise) faceModelPromise = faceapi.nets.tinyFaceDetector.loadFromUri('assets/face-model');
+  return faceModelPromise;
+}
+
+async function detectMainFace(image) {
+  if ('FaceDetector' in window) {
+    try {
+      const nativeDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
+      const nativeFaces = await nativeDetector.detect(image);
+      const largest = nativeFaces.sort((a, b) => b.boundingBox.width * b.boundingBox.height - a.boundingBox.width * a.boundingBox.height)[0];
+      if (largest) return largest.boundingBox;
+    } catch (error) {
+      console.warn('Native face detection fallback:', error);
+    }
+  }
+  await ensureFaceModel();
+  const detections = await faceapi.detectAllFaces(image, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: .35 }));
+  return detections.sort((a, b) => b.box.width * b.box.height - a.box.width * a.box.height)[0]?.box || null;
+}
+
+async function autoCenterFace(face) {
+  const image = await loadPhoto(face.url);
+  let box = null;
+  try {
+    box = await detectMainFace(image);
+  } catch (error) {
+    console.warn('Face detection fallback:', error);
+  }
+
+  const imageWidth = image.naturalWidth;
+  const imageHeight = image.naturalHeight;
+  const shortestSide = Math.min(imageWidth, imageHeight);
+  const cropSize = box
+    ? Math.min(shortestSide, Math.max(box.width * 1.9, box.height * 1.72))
+    : shortestSide;
+  const centerX = box ? box.x + box.width / 2 : imageWidth / 2;
+  const centerY = box ? box.y + box.height * .52 : imageHeight / 2;
+  const sourceX = clamp(centerX - cropSize / 2, 0, imageWidth - cropSize);
+  const sourceY = clamp(centerY - cropSize / 2, 0, imageHeight - cropSize);
+  const outputSize = 640;
+  const canvas = document.createElement('canvas');
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+  const context = canvas.getContext('2d');
+  context.drawImage(image, sourceX, sourceY, cropSize, cropSize, 0, 0, outputSize, outputSize);
+
+  const fallbackBox = { x: .2, y: .13, width: .6, height: .72 };
+  const mappedBox = box ? {
+    x: clamp((box.x - sourceX) / cropSize, 0, 1),
+    y: clamp((box.y - sourceY) / cropSize, 0, 1),
+    width: clamp(box.width / cropSize, .2, 1),
+    height: clamp(box.height / cropSize, .24, 1)
+  } : fallbackBox;
+  const centeredUrl = await canvasToObjectUrl(canvas);
+  if (face.objectUrl?.startsWith('blob:')) URL.revokeObjectURL(face.objectUrl);
+  return { ...face, url: centeredUrl, objectUrl: centeredUrl, faceBox: mappedBox, detected: Boolean(box) };
+}
+
+if (gameId === 'swat' && !('FaceDetector' in window)) {
+  setTimeout(() => ensureFaceModel().catch(() => {}), 180);
+}
+
+$('#singlePhotoInput').addEventListener('change', async (event) => {
+  state.faces.forEach((face) => { if (face.objectUrl?.startsWith('blob:')) URL.revokeObjectURL(face.objectUrl); });
+  const selectedFiles = [...event.target.files].slice(0, gameId === 'find' ? 8 : 1);
+  state.faces = selectedFiles.map((file, index) => {
+    const objectUrl = URL.createObjectURL(file);
+    return { name: `主角 ${index + 1}`, url: objectUrl, objectUrl, sample: false };
+  });
   renderPreview();
+  if (gameId !== 'swat' || !state.faces.length) return;
+
+  const uploadLabel = document.querySelector('label[for="singlePhotoInput"]');
+  const startButton = $('#singleStart');
+  uploadLabel.textContent = '正在识别人脸并自动居中…';
+  uploadLabel.classList.add('detecting');
+  startButton.disabled = true;
+  try {
+    state.faces = await Promise.all(state.faces.map(autoCenterFace));
+    renderPreview();
+    uploadLabel.textContent = state.faces[0].detected ? '✓ 已识别人脸并自动居中' : '✓ 已完成智能居中裁切';
+    uploadLabel.classList.toggle('face-found', state.faces[0].detected);
+  } catch (error) {
+    console.warn('Photo processing fallback:', error);
+    uploadLabel.textContent = '照片已载入，可重新选择';
+  } finally {
+    uploadLabel.classList.remove('detecting');
+    startButton.disabled = false;
+  }
 });
 
 $('#singleStart').addEventListener('click', start);
@@ -292,7 +396,11 @@ function buildSwat() {
   const context = canvas.getContext('2d', { willReadFrequently: true });
   const sourceImage = new Image();
   const damageVariant = { flip: Math.random() < .5, vertical: (Math.random() - .5) * .035, secondPalm: Math.random() > .28 };
-  const side = (value) => damageVariant.flip ? 1 - value : value;
+  const faceBounds = face.faceBox || { x: .2, y: .13, width: .6, height: .72 };
+  const faceX = (value) => canvas.width * (faceBounds.x + faceBounds.width * (damageVariant.flip ? 1 - value : value));
+  const faceY = (value) => canvas.height * (faceBounds.y + faceBounds.height * value);
+  const faceWidth = () => canvas.width * faceBounds.width;
+  const faceHeight = () => canvas.height * faceBounds.height;
 
   const drawCover = (targetContext, image, size) => {
     const scale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
@@ -321,11 +429,41 @@ function buildSwat() {
   };
 
   const paintBruise = (x, y, radiusX, radiusY, alpha) => {
-    context.save(); context.translate(x, y); context.scale(1, radiusY / radiusX); context.filter = 'blur(3px)'; context.globalCompositeOperation = 'multiply';
-    const bruise = context.createRadialGradient(0, 0, radiusX * .08, 0, 0, radiusX);
-    bruise.addColorStop(0, `rgba(38,15,55,${alpha})`); bruise.addColorStop(.38, `rgba(77,38,104,${alpha * .82})`);
-    bruise.addColorStop(.68, `rgba(112,74,128,${alpha * .48})`); bruise.addColorStop(.86, `rgba(170,143,48,${alpha * .28})`); bruise.addColorStop(1, 'rgba(90,40,100,0)');
-    context.fillStyle = bruise; context.beginPath(); context.arc(0, 0, radiusX, 0, Math.PI * 2); context.fill(); context.restore();
+    context.save();
+    context.translate(x, y);
+    context.rotate(damageVariant.flip ? -.08 : .08);
+    context.scale(1, radiusY / radiusX);
+    context.filter = 'blur(3.5px)';
+    context.globalCompositeOperation = 'multiply';
+    const bruise = context.createRadialGradient(-radiusX * .12, -radiusX * .04, radiusX * .05, 0, 0, radiusX);
+    bruise.addColorStop(0, `rgba(49,18,67,${alpha * .82})`);
+    bruise.addColorStop(.3, `rgba(91,38,91,${alpha})`);
+    bruise.addColorStop(.58, `rgba(132,61,88,${alpha * .58})`);
+    bruise.addColorStop(.79, `rgba(151,126,45,${alpha * .24})`);
+    bruise.addColorStop(1, 'rgba(80,35,92,0)');
+    context.fillStyle = bruise;
+    context.beginPath();
+    context.arc(0, 0, radiusX, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  };
+
+  const paintSwelling = (x, y, radiusX, radiusY, severity) => {
+    context.save();
+    context.translate(x, y);
+    context.rotate(damageVariant.flip ? .08 : -.08);
+    context.scale(1, radiusY / radiusX);
+    context.globalCompositeOperation = 'soft-light';
+    context.filter = 'blur(5px)';
+    const highlight = context.createRadialGradient(-radiusX * .26, -radiusX * .24, 2, 0, 0, radiusX);
+    highlight.addColorStop(0, `rgba(255,220,198,${.14 + severity * .16})`);
+    highlight.addColorStop(.46, `rgba(234,91,93,${.08 + severity * .14})`);
+    highlight.addColorStop(1, 'rgba(118,30,54,0)');
+    context.fillStyle = highlight;
+    context.beginPath();
+    context.arc(0, 0, radiusX, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
   };
 
   const paintPalmPrint = (x, y, scale, rotation, alpha) => {
@@ -343,21 +481,26 @@ function buildSwat() {
     if (!count) return;
     const severity = Math.min(1, count / 15);
     const pixels = context.getImageData(0, 0, size, size);
-    bulgePixels(pixels, size * side(.29), size * (.57 + damageVariant.vertical), size * .25, .05 + severity * .16);
-    if (count >= 6) bulgePixels(pixels, size * side(.71), size * (.55 - damageVariant.vertical), size * .21, .02 + severity * .10);
+    const mainCheekX = faceX(.29), mainCheekY = faceY(.64 + damageVariant.vertical);
+    const otherCheekX = faceX(.71), otherCheekY = faceY(.62 - damageVariant.vertical);
+    bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * .31, .025 + severity * .105);
+    if (count >= 6) bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * .27, .015 + severity * .07);
     context.putImageData(pixels, 0, 0);
 
     context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
-    const leftRed = context.createRadialGradient(size*side(.28),size*(.58+damageVariant.vertical),4,size*side(.28),size*(.58+damageVariant.vertical),size*.26);
-    leftRed.addColorStop(0,`rgba(218,45,58,${.18 + severity * .32})`); leftRed.addColorStop(1,'rgba(218,45,58,0)'); context.fillStyle=leftRed; context.fillRect(0,0,size,size);
-    if (count >= 6) { const rightRed=context.createRadialGradient(size*side(.72),size*(.56-damageVariant.vertical),4,size*side(.72),size*(.56-damageVariant.vertical),size*.22); rightRed.addColorStop(0,`rgba(204,37,57,${severity*.27})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
+    const leftRed = context.createRadialGradient(mainCheekX,mainCheekY,4,mainCheekX,mainCheekY,faceWidth()*.32);
+    leftRed.addColorStop(0,`rgba(210,43,58,${.09 + severity * .22})`); leftRed.addColorStop(1,'rgba(218,45,58,0)'); context.fillStyle=leftRed; context.fillRect(0,0,size,size);
+    if (count >= 6) { const rightRed=context.createRadialGradient(otherCheekX,otherCheekY,4,otherCheekX,otherCheekY,faceWidth()*.28); rightRed.addColorStop(0,`rgba(204,37,57,${severity*.18})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
     context.restore();
 
-    if (count >= 2) paintPalmPrint(size * side(.25), size * (.60 + damageVariant.vertical), .78, damageVariant.flip ? .2 : -.2, Math.min(.28, .09 + severity * .17));
-    if (count >= 9 && damageVariant.secondPalm) paintPalmPrint(size * side(.69), size * (.55 - damageVariant.vertical), .62, damageVariant.flip ? -.16 : .16, Math.min(.19, severity * .16));
-    if (count >= 3) paintBruise(size * side(.34), size * (.37 + damageVariant.vertical), size * .16, size * .085, Math.min(.66, .22 + severity * .48));
-    if (count >= 8) paintBruise(size * side(.65), size * (.39 - damageVariant.vertical), size * .13, size * .078, Math.min(.48, severity * .40));
-    if (count >= 12) { context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.18)'; context.beginPath(); context.ellipse(size*.51,size*.34,size*.30,size*.17,0,0,Math.PI*2); context.fill(); context.restore(); }
+    paintSwelling(mainCheekX, mainCheekY, faceWidth() * .32, faceHeight() * .22, severity);
+    if (count >= 6) paintSwelling(otherCheekX, otherCheekY, faceWidth() * .27, faceHeight() * .19, severity * .8);
+    if (count >= 2) paintPalmPrint(faceX(.25), faceY(.65 + damageVariant.vertical), clamp(faceWidth() / 300, .55, .88), damageVariant.flip ? .2 : -.2, Math.min(.26, .07 + severity * .17));
+    if (count >= 9 && damageVariant.secondPalm) paintPalmPrint(faceX(.72), faceY(.61 - damageVariant.vertical), clamp(faceWidth() / 360, .46, .7), damageVariant.flip ? -.16 : .16, Math.min(.17, severity * .14));
+    if (count >= 3) paintBruise(faceX(.33), faceY(.4 + damageVariant.vertical), faceWidth() * .2, faceHeight() * .095, Math.min(.48, .12 + severity * .36));
+    if (count >= 8) paintBruise(faceX(.67), faceY(.42 - damageVariant.vertical), faceWidth() * .17, faceHeight() * .085, Math.min(.38, severity * .3));
+    if (count >= 5) paintBruise(faceX(.5), faceY(.54), faceWidth() * .09, faceHeight() * .075, Math.min(.22, severity * .18));
+    if (count >= 12) { context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.13)'; context.beginPath(); context.ellipse(faceX(.5),faceY(.4),faceWidth()*.31,faceHeight()*.15,0,0,Math.PI*2); context.fill(); context.restore(); }
   };
   sourceImage.addEventListener('load', renderDamagedFace);
   sourceImage.src = face.url;
