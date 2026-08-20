@@ -94,6 +94,8 @@ function startTimer(seconds) {
   fill.style.transform = 'scaleX(1)';
   state.timer = setInterval(() => {
     const progress = Math.min(1, (performance.now() - state.startedAt) / (seconds * 1000));
+    const swatTime = $('#swatHudTime');
+    if (gameId === 'swat' && swatTime) swatTime.textContent = `剩余 ${String(Math.max(0, Math.ceil(seconds * (1 - progress)))).padStart(2, '0')} 秒`;
     fill.style.transform = `scaleX(${1 - progress})`;
     fill.style.background = progress > .72 ? '#ff3c3c' : '#ff5c35';
     if (progress >= 1) {
@@ -120,6 +122,9 @@ function finish(success) {
     const damageCanvas = $('#swatFaceCanvas');
     resultFace.hidden = false;
     resultFace.innerHTML = `<img src="${damageCanvas ? damageCanvas.toDataURL('image/jpeg', .92) : faces()[0].url}" alt="${faces()[0].name} 的最终伤情">`;
+    $('#swatResultHits').textContent = state.swatHits || 0;
+    $('#swatResultMisses').textContent = state.swatMisses || 0;
+    $('#swatResultSwelling').textContent = `${Math.min(100, Math.round((state.swatHits || 0) / 15 * 100))}%`;
   }
   $('#singleScore').textContent = `${finalScore} 分`;
   setTimeout(() => {
@@ -278,11 +283,16 @@ function buildStyle() {
 function buildSwat() {
   const stage = $('#singleStage');
   const face = faces()[0];
-  stage.innerHTML = `<div class="swat-scene"><div class="counter-chip">拍中 <b id="swatCount">0</b>/15 · 漏掉 <b id="swatMiss">0</b></div><div class="swat-warning">蚊子正在围攻这张脸！</div><div id="swatFace" class="swat-face-wrap"><canvas id="swatFaceCanvas" width="420" height="420" role="img" aria-label="${face.name} 正在逐渐鼻青脸肿"></canvas><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼朋友</div></div>`;
+  stage.innerHTML = `<div class="swat-scene"><div class="swat-warning">蚊子围攻中</div><div id="swatFace" class="swat-face-wrap"><canvas id="swatFaceCanvas" width="420" height="420" role="img" aria-label="${face.name} 正在逐渐鼻青脸肿"></canvas><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼朋友</div></div>`;
   let count = 0, misses = 0, completed = false;
+  state.swatHits = 0; state.swatMisses = 0;
+  $('#swatHudHits').textContent = '拍中 0/15 · 漏掉 0';
+  $('#swatHudTime').textContent = '剩余 30 秒';
   const canvas = $('#swatFaceCanvas');
   const context = canvas.getContext('2d', { willReadFrequently: true });
   const sourceImage = new Image();
+  const damageVariant = { flip: Math.random() < .5, vertical: (Math.random() - .5) * .035, secondPalm: Math.random() > .28 };
+  const side = (value) => damageVariant.flip ? 1 - value : value;
 
   const drawCover = (targetContext, image, size) => {
     const scale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
@@ -333,20 +343,20 @@ function buildSwat() {
     if (!count) return;
     const severity = Math.min(1, count / 15);
     const pixels = context.getImageData(0, 0, size, size);
-    bulgePixels(pixels, size * .29, size * .57, size * .25, .05 + severity * .16);
-    if (count >= 5) bulgePixels(pixels, size * .71, size * .56, size * .23, .03 + severity * .13);
+    bulgePixels(pixels, size * side(.29), size * (.57 + damageVariant.vertical), size * .25, .05 + severity * .16);
+    if (count >= 6) bulgePixels(pixels, size * side(.71), size * (.55 - damageVariant.vertical), size * .21, .02 + severity * .10);
     context.putImageData(pixels, 0, 0);
 
     context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
-    const leftRed = context.createRadialGradient(size*.28,size*.58,4,size*.28,size*.58,size*.26);
+    const leftRed = context.createRadialGradient(size*side(.28),size*(.58+damageVariant.vertical),4,size*side(.28),size*(.58+damageVariant.vertical),size*.26);
     leftRed.addColorStop(0,`rgba(218,45,58,${.18 + severity * .32})`); leftRed.addColorStop(1,'rgba(218,45,58,0)'); context.fillStyle=leftRed; context.fillRect(0,0,size,size);
-    if (count >= 5) { const rightRed=context.createRadialGradient(size*.72,size*.57,4,size*.72,size*.57,size*.24); rightRed.addColorStop(0,`rgba(204,37,57,${severity*.34})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
+    if (count >= 6) { const rightRed=context.createRadialGradient(size*side(.72),size*(.56-damageVariant.vertical),4,size*side(.72),size*(.56-damageVariant.vertical),size*.22); rightRed.addColorStop(0,`rgba(204,37,57,${severity*.27})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
     context.restore();
 
-    if (count >= 2) paintPalmPrint(size * .25, size * .60, .78, -.2, Math.min(.34, .11 + severity * .22));
-    if (count >= 7) paintPalmPrint(size * .73, size * .59, .72, .22, Math.min(.3, severity * .25));
-    if (count >= 3) paintBruise(size * .34, size * .37, size * .16, size * .085, Math.min(.66, .22 + severity * .48));
-    if (count >= 8) paintBruise(size * .65, size * .375, size * .15, size * .09, Math.min(.6, severity * .52));
+    if (count >= 2) paintPalmPrint(size * side(.25), size * (.60 + damageVariant.vertical), .78, damageVariant.flip ? .2 : -.2, Math.min(.28, .09 + severity * .17));
+    if (count >= 9 && damageVariant.secondPalm) paintPalmPrint(size * side(.69), size * (.55 - damageVariant.vertical), .62, damageVariant.flip ? -.16 : .16, Math.min(.19, severity * .16));
+    if (count >= 3) paintBruise(size * side(.34), size * (.37 + damageVariant.vertical), size * .16, size * .085, Math.min(.66, .22 + severity * .48));
+    if (count >= 8) paintBruise(size * side(.65), size * (.39 - damageVariant.vertical), size * .13, size * .078, Math.min(.48, severity * .40));
     if (count >= 12) { context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.18)'; context.beginPath(); context.ellipse(size*.51,size*.34,size*.30,size*.17,0,0,Math.PI*2); context.fill(); context.restore(); }
   };
   sourceImage.addEventListener('load', renderDamagedFace);
@@ -374,23 +384,25 @@ function buildSwat() {
   const spawn = () => {
     if (state.finished) return;
     const bug = document.createElement('button');
-    bug.type = 'button'; bug.className = 'bug-target flying-mosquito'; bug.innerHTML = '<img src="assets/mosquito-real.png" alt="">'; bug.setAttribute('aria-label','拍掉蚊子');
+    const depthRoll = Math.random();
+    const depthClass = depthRoll < .28 ? ' bug-far' : depthRoll > .76 ? ' bug-near' : ' bug-mid';
+    bug.type = 'button'; bug.className = `bug-target flying-mosquito${depthClass}`; bug.innerHTML = '<img src="assets/mosquito-real.png" alt="">'; bug.setAttribute('aria-label','拍掉蚊子');
     bug.style.left = `${4 + Math.random() * 70}%`; bug.style.top = `${10 + Math.random() * 65}%`;
     bug.style.setProperty('--fly-x', `${Math.round(-34 + Math.random() * 68)}px`);
     bug.style.setProperty('--fly-y', `${Math.round(-28 + Math.random() * 56)}px`);
     bug.style.setProperty('--fly-time', `${(1.05 + Math.random() * .65).toFixed(2)}s`);
     bug.addEventListener('click', () => {
       if (bug.disabled || state.finished) return;
-      bug.disabled = true; count += 1; $('#swatCount').textContent = count;
+      bug.disabled = true; count += 1; state.swatHits = count; $('#swatHudHits').textContent = `拍中 ${count}/15 · 漏掉 ${misses}`;
       showSlap(bug); addDamage(); bug.innerHTML = '<span class="bug-splat"></span>'; bug.classList.add('squashed');
       setScore(count * 20 - misses);
       if (count >= 15 && !completed) { completed = true; later(() => finish(true), 650); return; }
-      later(() => { bug.remove(); spawn(); if (count >= 7 && Math.random() < .36) spawn(); }, 160);
+      later(() => { bug.remove(); spawn(); if (count >= 7 && Math.random() < .36) spawn(); }, 280);
     });
     stage.appendChild(bug);
     later(() => {
       if (!bug.disabled && bug.isConnected && !state.finished) {
-        bug.remove(); misses += 1; $('#swatMiss').textContent = misses; setScore(count * 20 - misses); spawn();
+        bug.remove(); misses += 1; state.swatMisses = misses; $('#swatHudHits').textContent = `拍中 ${count}/15 · 漏掉 ${misses}`; setScore(count * 20 - misses); spawn();
       }
     }, Math.max(1800, 3300 - count * 34));
   };

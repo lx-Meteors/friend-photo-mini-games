@@ -25,7 +25,12 @@
         <button id="singleStart" class="primary-button" type="button"><b>READY?</b> 开拍！别手软 <span>→</span></button>
       </div>
       <div class="single-play" hidden>
-        <div class="single-hud"><b id="singleScore">0 分</b><button id="singleRestart" type="button">重新开始</button></div>
+        <div class="single-hud swat-hud">
+          <b id="singleScore">0 分</b>
+          <span id="swatHudHits">拍中 0/15 · 漏掉 0</span>
+          <span id="swatHudTime">剩余 30 秒</span>
+          <button id="singleRestart" type="button" aria-label="重新开始">↻</button>
+        </div>
         <div id="singleTimer" class="timer-track"><span></span></div>
         <div id="singleStage" class="game-stage"></div>
         <div id="singleFeedback" class="feedback"></div>
@@ -35,6 +40,11 @@
         <h2 id="singleResultTitle">蚊子没了，脸也肿了！</h2>
         <div id="swatResultFace" class="swat-result-face" hidden></div>
         <strong id="singleResultScore">100 分</strong>
+        <div class="swat-result-report">
+          <span>巴掌 <b id="swatResultHits">0</b></span>
+          <span>漏蚊 <b id="swatResultMisses">0</b></span>
+          <span>肿胀 <b id="swatResultSwelling">0%</b></span>
+        </div>
         <button id="singleAgain" class="primary-button dark" type="button">再拍一顿</button>
         <a href="index.html">返回小游戏目录</a>
       </div>

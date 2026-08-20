@@ -919,3 +919,90 @@ body[data-game="swat"] .single-result{background:#fff4c5;box-shadow:9px 10px 0 v
   .game-link-card strong { font-size: 24px; }
   .game-emoji { font-size: 46px; }
 }
+
+/* 拍掉第二轮精修：减法封面、单行 HUD、完整结果页 */
+body[data-game="swat"]{
+  background-color:#c4ed69;
+  background-image:radial-gradient(circle,#ffffffd9 0 1.5px,transparent 2px),repeating-linear-gradient(135deg,transparent 0 21px,#6d9d2820 21px 24px);
+  background-size:27px 27px,auto;
+}
+body[data-game="swat"] .single-intro::before,
+body[data-game="swat"] .single-intro::after{display:none}
+.swat-cover-stage{width:82%;min-height:158px}
+body[data-game="swat"] .swat-cover-stage .single-preview img{width:118px;height:118px}
+.swat-cover-stage>img{right:-19px;top:24px;width:78px;height:78px}
+body[data-game="swat"] .mini-upload,
+body[data-game="swat"] .single-intro .primary-button{width:84%}
+
+body[data-game="swat"] .swat-hud{
+  min-height:31px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto 27px;
+  gap:4px;
+  margin-bottom:4px;
+  padding:0;
+}
+body[data-game="swat"] .swat-hud b,
+body[data-game="swat"] .swat-hud span{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:27px;
+  padding:2px 6px;
+  border:2px solid var(--ink);
+  border-radius:2px;
+  box-shadow:2px 2px 0 var(--ink);
+  color:var(--ink);
+  background:white;
+  font-size:7px;
+  font-weight:950;
+  white-space:nowrap;
+  transform:rotate(-1deg);
+}
+body[data-game="swat"] .swat-hud b{font-size:9px;color:var(--orange)}
+body[data-game="swat"] #swatHudHits{overflow:hidden;background:var(--yellow);text-overflow:ellipsis;transform:rotate(.5deg)}
+body[data-game="swat"] #swatHudTime{background:var(--blue);transform:rotate(-.5deg)}
+body[data-game="swat"] .swat-hud button{width:27px;height:27px;display:grid;place-items:center;padding:0;border:2px solid var(--ink);border-radius:50%;background:white;box-shadow:2px 2px 0 var(--ink);font-size:16px;text-decoration:none}
+body[data-game="swat"] .single-play::before{display:none}
+body[data-game="swat"] .timer-track{height:8px;margin:1px 2px 3px}
+.swat-warning{top:8px;right:auto;left:50%;padding:3px 7px;transform:translateX(-50%) rotate(-1deg)}
+.swat-face-wrap{width:69%;margin-top:15px}
+.flying-mosquito.bug-far{width:42px;height:42px;opacity:.72;filter:blur(.35px)}
+.flying-mosquito.bug-mid{width:53px;height:53px;opacity:.9}
+.flying-mosquito.bug-near{z-index:11;width:66px;height:66px;filter:contrast(1.08)}
+.flying-mosquito.bug-far>img{filter:contrast(1.05) drop-shadow(1px 2px 1px #fff)}
+.flying-mosquito.bug-near>img{filter:contrast(1.2) drop-shadow(0 3px 1px #fff) drop-shadow(4px 5px 3px #17131f99)}
+
+body[data-game="swat"] .single-result{
+  width:89%;
+  margin:auto;
+  padding:14px 15px 13px;
+  border-width:4px;
+  transform:rotate(-1deg);
+}
+body[data-game="swat"] .single-result::before{top:-10px;height:19px}
+body[data-game="swat"] .single-result>p{margin:0;font-size:34px;line-height:1}
+body[data-game="swat"] .single-result h2{max-width:250px;margin:4px auto 6px;font-size:23px;line-height:1.08;letter-spacing:-.05em}
+body[data-game="swat"] .swat-result-face{width:116px;margin:4px auto 7px;border-width:4px;box-shadow:4px 5px 0 var(--pink)}
+body[data-game="swat"] .single-result>strong{font-size:39px;line-height:1;text-shadow:2px 2px 0 var(--ink)}
+.swat-result-report{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:7px 0 0}
+.swat-result-report span{padding:4px 2px;border:2px solid var(--ink);background:white;font-size:7px;font-weight:900}
+.swat-result-report span:nth-child(2){background:var(--blue)}
+.swat-result-report span:nth-child(3){background:var(--pink)}
+.swat-result-report b{display:block;margin-top:1px;font-size:11px}
+body[data-game="swat"] .single-result .primary-button{min-height:42px;margin-top:9px;border-width:3px;border-radius:5px;font-size:13px;box-shadow:4px 5px 0 var(--orange)}
+body[data-game="swat"] .single-result>a{margin-top:10px;font-size:9px}
+
+@media(max-width:380px){
+  .swat-cover-stage{width:84%;min-height:144px}
+  body[data-game="swat"] .swat-cover-stage .single-preview img{width:104px;height:104px}
+  .swat-cover-stage>img{width:70px;height:70px}
+  body[data-game="swat"] .swat-hud{grid-template-columns:41px minmax(0,1fr) 65px 25px;gap:3px}
+  body[data-game="swat"] .swat-hud b,body[data-game="swat"] .swat-hud span{padding-inline:3px;font-size:6px}
+  body[data-game="swat"] .swat-hud b{font-size:8px}
+  body[data-game="swat"] .swat-hud button{width:25px;height:25px}
+  body[data-game="swat"] .single-result{padding:11px 13px}
+  body[data-game="swat"] .single-result h2{font-size:21px}
+  body[data-game="swat"] .swat-result-face{width:104px}
+}
