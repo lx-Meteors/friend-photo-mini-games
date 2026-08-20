@@ -463,6 +463,26 @@ function buildSwat() {
     targetContext.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, size, size);
   };
 
+  const stretchFace = (scaleX, scaleY) => {
+    const snapshot = document.createElement('canvas');
+    snapshot.width = canvas.width; snapshot.height = canvas.height;
+    snapshot.getContext('2d').drawImage(canvas, 0, 0);
+    const sourceX = canvas.width * (faceBounds.x - faceBounds.width * .06);
+    const sourceY = canvas.height * (faceBounds.y - faceBounds.height * .04);
+    const sourceWidth = faceWidth() * 1.12;
+    const sourceHeight = faceHeight() * 1.08;
+    const centerX = canvas.width * (faceBounds.x + faceBounds.width / 2);
+    const centerY = canvas.height * (faceBounds.y + faceBounds.height / 2);
+    const destinationWidth = sourceWidth * scaleX;
+    const destinationHeight = sourceHeight * scaleY;
+    context.save();
+    context.beginPath();
+    context.ellipse(centerX, centerY, destinationWidth * .5, destinationHeight * .52, 0, 0, Math.PI * 2);
+    context.clip();
+    context.drawImage(snapshot, sourceX, sourceY, sourceWidth, sourceHeight, centerX - destinationWidth / 2, centerY - destinationHeight / 2, destinationWidth, destinationHeight);
+    context.restore();
+  };
+
   const bulgePixels = (imageData, centerX, centerY, radius, strength) => {
     const { width, height, data } = imageData;
     const source = new Uint8ClampedArray(data);
@@ -546,6 +566,83 @@ function buildSwat() {
     context.restore();
   };
 
+  const paintExplosionHair = (centerX, hairlineY, width, height, intensity) => {
+    context.save();
+    context.translate(centerX, hairlineY);
+    context.shadowColor = 'rgba(24,12,10,.42)';
+    context.shadowBlur = 7;
+    context.shadowOffsetY = 4;
+    const hair = context.createLinearGradient(0, -height, 0, height * .12);
+    hair.addColorStop(0, '#090707');
+    hair.addColorStop(.58, '#17100f');
+    hair.addColorStop(1, '#3b2018');
+    context.fillStyle = hair;
+    context.beginPath();
+    context.moveTo(-width * .54, height * .12);
+    for (let i = 0; i <= 28; i += 1) {
+      const progress = i / 28;
+      const angle = Math.PI * .94 + progress * Math.PI * 1.12;
+      const chaos = .72 + Math.abs(Math.sin(i * 7.31)) * .58;
+      const spike = i % 2 ? .5 + intensity * .08 : chaos + intensity * .16;
+      context.lineTo(Math.cos(angle) * width * .52 * spike, Math.sin(angle) * height * spike);
+    }
+    context.lineTo(width * .54, height * .12);
+    context.quadraticCurveTo(0, height * .36, -width * .54, height * .12);
+    context.closePath();
+    context.fill();
+    context.shadowColor = 'transparent';
+    context.strokeStyle = 'rgba(255,224,126,.28)';
+    context.lineWidth = Math.max(2, width * .012);
+    for (let i = -4; i <= 4; i += 1) {
+      context.beginPath();
+      context.moveTo(i * width * .08, height * .04);
+      context.quadraticCurveTo(i * width * .11, -height * (.45 + Math.abs(i % 2) * .18), i * width * .13, -height * (.7 + Math.abs(i % 3) * .08));
+      context.stroke();
+    }
+    context.restore();
+  };
+
+  const paintComicStar = (x, y, radius, rotation, color) => {
+    context.save();
+    context.translate(x, y);
+    context.rotate(rotation);
+    context.fillStyle = color;
+    context.strokeStyle = '#18131f';
+    context.lineWidth = Math.max(3, radius * .12);
+    context.beginPath();
+    for (let i = 0; i < 16; i += 1) {
+      const angle = -Math.PI / 2 + i * Math.PI / 8;
+      const pointRadius = i % 2 ? radius * .43 : radius;
+      const px = Math.cos(angle) * pointRadius;
+      const py = Math.sin(angle) * pointRadius;
+      if (!i) context.moveTo(px, py); else context.lineTo(px, py);
+    }
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.restore();
+  };
+
+  const paintBandage = (x, y, width, rotation) => {
+    context.save();
+    context.translate(x, y);
+    context.rotate(rotation);
+    context.fillStyle = '#f4c990';
+    context.strokeStyle = '#5a3528';
+    context.lineWidth = Math.max(2, width * .045);
+    context.beginPath();
+    context.rect(-width / 2, -width * .13, width, width * .26);
+    context.fill();
+    context.stroke();
+    context.fillStyle = '#fff0c9';
+    context.fillRect(-width * .15, -width * .12, width * .3, width * .24);
+    context.fillStyle = 'rgba(108,61,40,.45)';
+    [-.34, -.26, .26, .34].forEach((offset) => {
+      context.beginPath(); context.arc(width * offset, 0, width * .018, 0, Math.PI * 2); context.fill();
+    });
+    context.restore();
+  };
+
   const paintNosebleed = (primaryNostril, secondaryNostril, width, height, severity) => {
     const direction = primaryNostril.x < secondaryNostril.x ? -1 : 1;
     const streamLength = height * (.12 + severity * .1);
@@ -592,14 +689,22 @@ function buildSwat() {
     if (!damageCount) return;
     const severity = Math.min(1, damageCount / config.damageCap);
     const stage = Math.min(5, Math.max(1, Math.round(damageCount / 5)));
+    if (damageCount >= 20) stretchFace(damageCount >= 25 ? 1.3 : 1.15, damageCount >= 25 ? .94 : .98);
     const pixels = context.getImageData(0, 0, size, size);
     const mainCheekX = faceX(.29), mainCheekY = faceY(.64 + damageVariant.vertical);
     const otherCheekX = faceX(.71), otherCheekY = faceY(.62 - damageVariant.vertical);
+    if (damageCount >= 25) {
+      bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .62, .42);
+      bulgePixels(pixels, faceX(.31), faceY(.4), faceWidth() * .17, .5);
+      bulgePixels(pixels, faceX(.69), faceY(.4), faceWidth() * .15, -.22);
+    }
     bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * (.4 + stage * .012), .22 + severity * .38);
     if (damageCount >= 10) bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * (.39 + stage * .01), .2 + severity * .36);
     if (damageCount >= 15) bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .24, .16 + severity * .26);
     if (damageCount >= 20) bulgePixels(pixels, faceX(.5), faceY(.74), faceWidth() * .31, .2 + severity * .28);
     context.putImageData(pixels, 0, 0);
+
+    if (damageCount >= 15) paintExplosionHair(faceX(.5), faceY(.16), faceWidth() * .98, faceHeight() * .5, severity);
 
     context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
     const leftRed = context.createRadialGradient(mainCheekX,mainCheekY,4,mainCheekX,mainCheekY,faceWidth()*.38);
@@ -614,7 +719,7 @@ function buildSwat() {
     paintBruise(faceX(.33), faceY(.4 + damageVariant.vertical), faceWidth() * .24, faceHeight() * .12, Math.min(.72, .22 + severity * .52));
     if (damageCount >= 10) paintBruise(faceX(.67), faceY(.42 - damageVariant.vertical), faceWidth() * .22, faceHeight() * .11, Math.min(.65, .16 + severity * .46));
     if (damageCount >= 15) paintBruise(faceX(.5), faceY(.54), faceWidth() * .13, faceHeight() * .1, Math.min(.42, .12 + severity * .32));
-    if (damageCount >= 15) {
+    if (damageCount >= 10) {
       const leftNostril = canvasPoint(nostrilPoints.left);
       const rightNostril = canvasPoint(nostrilPoints.right);
       paintNosebleed(damageVariant.flip ? rightNostril : leftNostril, damageVariant.flip ? leftNostril : rightNostril, faceWidth(), faceHeight(), severity);
@@ -624,7 +729,12 @@ function buildSwat() {
       paintBruise(faceX(.69), faceY(.4), faceWidth() * .27, faceHeight() * .14, .62);
       context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.24)'; context.beginPath(); context.ellipse(faceX(.5),faceY(.4),faceWidth()*.36,faceHeight()*.18,0,0,Math.PI*2); context.fill(); context.restore();
     }
-    if (damageCount >= 25) paintShoePrint(faceX(.29), faceY(.31), clamp(faceWidth() / 360, .58, .82), damageVariant.flip ? -.38 : .38, .42);
+    if (damageCount >= 25) {
+      paintShoePrint(faceX(.22), faceY(.33), clamp(faceWidth() / 360, .58, .82), damageVariant.flip ? -.38 : .38, .46);
+      paintBandage(faceX(.67), faceY(.28), faceWidth() * .31, damageVariant.flip ? -.2 : .2);
+      paintComicStar(faceX(.08), faceY(.17), faceWidth() * .12, -.2, '#ffe23e');
+      paintComicStar(faceX(.91), faceY(.24), faceWidth() * .09, .24, '#ff5e79');
+    }
   };
 
   const preparedDamageStages = new Map();
@@ -656,7 +766,7 @@ function buildSwat() {
     displayPreparedDamage(count);
     faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
     faceWrap.dataset.damage = Math.min(5, Math.floor(count / 5));
-    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：半边脸起飞' : count < 15 ? '10掌：双颊充气' : count < 20 ? '15掌：鼻青脸肿' : count < 25 ? '20掌：猪头模式' : '25掌：面目全非';
+    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：掌印盖章' : count < 15 ? '10掌：鼻血警告' : count < 20 ? '15掌：头发炸了' : count < 25 ? '20掌：猪头模式' : '25掌：面目全非';
   };
 
   const showSlap = (bug) => {
