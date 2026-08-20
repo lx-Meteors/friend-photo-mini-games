@@ -994,6 +994,23 @@ body[data-game="swat"] .single-result>strong{font-size:39px;line-height:1;text-s
 .swat-result-report b{display:block;margin-top:1px;font-size:11px}
 body[data-game="swat"] .single-result .primary-button{min-height:42px;margin-top:9px;border-width:3px;border-radius:5px;font-size:13px;box-shadow:4px 5px 0 var(--orange)}
 body[data-game="swat"] .single-result>a{margin-top:10px;font-size:9px}
+body[data-game="swat"] .single-result .next-victim-button{
+  min-height:38px;
+  margin-top:10px;
+  border:3px solid var(--ink);
+  border-radius:5px;
+  color:var(--ink);
+  background:var(--yellow);
+  box-shadow:4px 5px 0 var(--ink);
+  font-size:12px;
+}
+body[data-game="swat"] .single-result .next-victim-button::before{
+  margin-right:6px;
+  content:'＋';
+  color:var(--orange);
+  font-size:17px;
+  font-weight:1000;
+}
 
 @media(max-width:380px){
   .swat-cover-stage{width:84%;min-height:144px}
@@ -1006,6 +1023,7 @@ body[data-game="swat"] .single-result>a{margin-top:10px;font-size:9px}
   body[data-game="swat"] .single-result{padding:11px 13px}
   body[data-game="swat"] .single-result h2{font-size:21px}
   body[data-game="swat"] .swat-result-face{width:104px}
+  body[data-game="swat"] .single-result .next-victim-button{min-height:35px;margin-top:8px;font-size:11px}
 }
 
 /* 拍掉最终版：高利用率封面与单一大人像舞台 */

@@ -44,6 +44,7 @@ function renderPreview() {
 }
 
 let faceModelPromise = null;
+let replacingVictimFromResult = false;
 
 function loadPhoto(url) {
   return new Promise((resolve, reject) => {
@@ -129,8 +130,16 @@ if (gameId === 'swat' && !('FaceDetector' in window)) {
 }
 
 $('#singlePhotoInput').addEventListener('change', async (event) => {
-  state.faces.forEach((face) => { if (face.objectUrl?.startsWith('blob:')) URL.revokeObjectURL(face.objectUrl); });
   const selectedFiles = [...event.target.files].slice(0, gameId === 'find' ? 8 : 1);
+  if (!selectedFiles.length) return;
+  if (replacingVictimFromResult) {
+    clean();
+    $('.single-play').hidden = true;
+    $('#singleResult').hidden = true;
+    $('.single-intro').hidden = false;
+    replacingVictimFromResult = false;
+  }
+  state.faces.forEach((face) => { if (face.objectUrl?.startsWith('blob:')) URL.revokeObjectURL(face.objectUrl); });
   state.faces = selectedFiles.map((file, index) => {
     const objectUrl = URL.createObjectURL(file);
     return { name: `主角 ${index + 1}`, url: objectUrl, objectUrl, sample: false };
@@ -159,6 +168,16 @@ $('#singlePhotoInput').addEventListener('change', async (event) => {
     startButton.disabled = !state.faces[0]?.detected;
   }
 });
+
+const nextVictimButton = $('#singleNextVictim');
+if (nextVictimButton) {
+  nextVictimButton.addEventListener('click', () => {
+    replacingVictimFromResult = true;
+    const photoInput = $('#singlePhotoInput');
+    photoInput.value = '';
+    photoInput.click();
+  });
+}
 
 $('#singleStart').addEventListener('click', start);
 $('#singleAgain').addEventListener('click', start);
