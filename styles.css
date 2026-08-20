@@ -1169,7 +1169,7 @@ body[data-game="swat"] .game-stage{
   transform:translateX(50%) rotate(-1deg);
 }
 body[data-game="swat"] .swat-result-face{
-  width:132px;
+  width:150px;
   border-radius:22px;
 }
 
@@ -1195,6 +1195,7 @@ body[data-game="swat"] .swat-result-face{
   body[data-game="swat"] .mini-upload{margin-top:9px;padding:6px 8px}
   body[data-game="swat"] .single-intro .primary-button{min-height:42px;margin-top:9px}
   .swat-face-wrap{width:90%;margin-top:36px;border-radius:20px}
+  body[data-game="swat"] .swat-result-face{width:138px}
   #faceCondition{bottom:8px;font-size:8px}
   .swat-tip{font-size:7px}
 }
