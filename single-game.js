@@ -13,6 +13,7 @@ const configs = {
   shake: { duration: 15, command: '摇醒！', sub: '三档加速，把魂摇回来', success: '满血复活！', fail: '还在梦游！', emoji: '🫨' },
   wipe: { duration: 15, command: '擦干净！', sub: '污渍会反扑，快速清场', success: '焕然一新！', fail: '越擦越脏！', emoji: '🧻' }
 };
+const config = configs[gameId];
 
 const state = {
   faces: [],
