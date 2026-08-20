@@ -1199,3 +1199,44 @@ body[data-game="swat"] .swat-result-face{
   #faceCondition{bottom:8px;font-size:8px}
   .swat-tip{font-size:7px}
 }
+
+/* Keep the complete result card inside the fixed 3:4 game viewport. */
+body[data-game="swat"] .single-result{
+  width:91%;
+  padding:9px 12px 11px;
+}
+body[data-game="swat"] .single-result>p{font-size:27px}
+body[data-game="swat"] .single-result h2{
+  max-width:270px;
+  margin:2px auto 4px;
+  font-size:19px;
+  line-height:1.05;
+}
+body[data-game="swat"] .swat-result-face{
+  width:136px;
+  margin:2px auto 4px;
+  border-width:3px;
+}
+body[data-game="swat"] .single-result>strong{font-size:32px}
+body[data-game="swat"] .swat-result-report{margin-top:4px}
+body[data-game="swat"] .swat-result-report span{padding:3px 2px}
+body[data-game="swat"] .single-result .primary-button{
+  min-height:35px;
+  margin-top:6px;
+  font-size:12px;
+}
+body[data-game="swat"] .single-result .next-victim-button{
+  min-height:34px;
+  margin-top:6px;
+  font-size:11px;
+}
+
+@media(max-width:380px){
+  body[data-game="swat"] .single-result{padding:7px 10px 8px}
+  body[data-game="swat"] .single-result>p{font-size:24px}
+  body[data-game="swat"] .swat-result-face{width:118px;margin-bottom:3px}
+  body[data-game="swat"] .single-result h2{font-size:17px}
+  body[data-game="swat"] .single-result>strong{font-size:29px}
+  body[data-game="swat"] .single-result .primary-button{min-height:32px;margin-top:4px}
+  body[data-game="swat"] .single-result .next-victim-button{min-height:30px;margin-top:4px}
+}
