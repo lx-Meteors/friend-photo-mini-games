@@ -67,31 +67,27 @@ function canvasToObjectUrl(canvas) {
 
 async function ensureFaceModel() {
   if (!window.faceapi) throw new Error('face detector unavailable');
-  if (!faceModelPromise) faceModelPromise = faceapi.nets.tinyFaceDetector.loadFromUri('assets/face-model');
+  if (!faceModelPromise) faceModelPromise = Promise.all([
+    faceapi.nets.tinyFaceDetector.loadFromUri('assets/face-model'),
+    faceapi.nets.faceLandmark68TinyNet.loadFromUri('assets/face-model')
+  ]);
   return faceModelPromise;
 }
 
 async function detectMainFace(image) {
-  if ('FaceDetector' in window) {
-    try {
-      const nativeDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
-      const nativeFaces = await nativeDetector.detect(image);
-      const largest = nativeFaces.sort((a, b) => b.boundingBox.width * b.boundingBox.height - a.boundingBox.width * a.boundingBox.height)[0];
-      if (largest) return largest.boundingBox;
-    } catch (error) {
-      console.warn('Native face detection fallback:', error);
-    }
-  }
   await ensureFaceModel();
-  const detections = await faceapi.detectAllFaces(image, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: .25 }));
-  return detections.sort((a, b) => b.box.width * b.box.height - a.box.width * a.box.height)[0]?.box || null;
+  const detections = await faceapi
+    .detectAllFaces(image, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: .25 }))
+    .withFaceLandmarks(true);
+  const largest = detections.sort((a, b) => b.detection.box.width * b.detection.box.height - a.detection.box.width * a.detection.box.height)[0];
+  return largest ? { box: largest.detection.box, nose: largest.landmarks.getNose() } : null;
 }
 
 async function autoCenterFace(face) {
   const image = await loadPhoto(face.url);
-  let box = null;
+  let detection = null;
   try {
-    box = await detectMainFace(image);
+    detection = await detectMainFace(image);
   } catch (error) {
     console.warn('Face detection fallback:', error);
   }
@@ -99,6 +95,7 @@ async function autoCenterFace(face) {
   const imageWidth = image.naturalWidth;
   const imageHeight = image.naturalHeight;
   const shortestSide = Math.min(imageWidth, imageHeight);
+  const box = detection?.box;
   const cropSize = box
     ? Math.min(shortestSide, Math.max(box.width * 1.9, box.height * 1.72))
     : shortestSide;
@@ -120,12 +117,20 @@ async function autoCenterFace(face) {
     width: clamp(box.width / cropSize, .2, 1),
     height: clamp(box.height / cropSize, .24, 1)
   } : fallbackBox;
+  const mapPoint = (point) => ({
+    x: clamp((point.x - sourceX) / cropSize, 0, 1),
+    y: clamp((point.y - sourceY) / cropSize, 0, 1)
+  });
+  const nostrils = detection?.nose?.length >= 9 ? {
+    left: mapPoint(detection.nose[5]),
+    right: mapPoint(detection.nose[7])
+  } : null;
   const centeredUrl = await canvasToObjectUrl(canvas);
   if (face.objectUrl?.startsWith('blob:')) URL.revokeObjectURL(face.objectUrl);
-  return { ...face, url: centeredUrl, objectUrl: centeredUrl, faceBox: mappedBox, detected: Boolean(box) };
+  return { ...face, url: centeredUrl, objectUrl: centeredUrl, faceBox: mappedBox, nostrils, detected: Boolean(box && nostrils) };
 }
 
-if (gameId === 'swat' && !('FaceDetector' in window)) {
+if (gameId === 'swat') {
   setTimeout(() => ensureFaceModel().catch(() => {}), 180);
 }
 
@@ -424,6 +429,11 @@ function buildSwat() {
   const faceY = (value) => canvas.height * (faceBounds.y + faceBounds.height * value);
   const faceWidth = () => canvas.width * faceBounds.width;
   const faceHeight = () => canvas.height * faceBounds.height;
+  const nostrilPoints = face.nostrils || {
+    left: { x: faceBounds.x + faceBounds.width * .455, y: faceBounds.y + faceBounds.height * .57 },
+    right: { x: faceBounds.x + faceBounds.width * .545, y: faceBounds.y + faceBounds.height * .57 }
+  };
+  const canvasPoint = (point) => ({ x: canvas.width * point.x, y: canvas.height * point.y });
 
   const drawCover = (targetContext, image, size) => {
     const scale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
@@ -497,10 +507,11 @@ function buildSwat() {
     context.restore();
   };
 
-  const paintNosebleed = (x, y, width, height, severity) => {
-    const direction = damageVariant.flip ? -1 : 1;
+  const paintNosebleed = (primaryNostril, secondaryNostril, width, height, severity) => {
+    const direction = primaryNostril.x < secondaryNostril.x ? -1 : 1;
     const streamLength = height * (.12 + severity * .1);
-    const startX = x + direction * width * .035;
+    const startX = primaryNostril.x;
+    const startY = primaryNostril.y + height * .008;
     context.save();
     context.globalCompositeOperation = 'multiply';
     context.lineCap = 'round';
@@ -509,26 +520,27 @@ function buildSwat() {
     context.strokeStyle = `rgba(92,4,15,${.72 + severity * .2})`;
     context.lineWidth = clamp(width * .022, 3.5, 7);
     context.beginPath();
-    context.moveTo(startX, y);
-    context.bezierCurveTo(startX + direction * width * .018, y + streamLength * .28, startX - direction * width * .012, y + streamLength * .62, startX + direction * width * .025, y + streamLength);
+    context.moveTo(startX, startY);
+    context.bezierCurveTo(startX + direction * width * .018, startY + streamLength * .28, startX - direction * width * .012, startY + streamLength * .62, startX + direction * width * .025, startY + streamLength);
     context.stroke();
     context.strokeStyle = `rgba(224,32,39,${.55 + severity * .25})`;
     context.lineWidth = clamp(width * .008, 1.5, 3);
     context.beginPath();
-    context.moveTo(startX - direction * 1.5, y + 2);
-    context.bezierCurveTo(startX + direction * width * .01, y + streamLength * .34, startX - direction * width * .018, y + streamLength * .66, startX + direction * width * .02, y + streamLength * .94);
+    context.moveTo(startX - direction * 1.5, startY + 2);
+    context.bezierCurveTo(startX + direction * width * .01, startY + streamLength * .34, startX - direction * width * .018, startY + streamLength * .66, startX + direction * width * .02, startY + streamLength * .94);
     context.stroke();
     context.fillStyle = `rgba(104,3,16,${.72 + severity * .2})`;
     context.beginPath();
-    context.ellipse(startX + direction * width * .025, y + streamLength, width * .026, height * .018, direction * .2, 0, Math.PI * 2);
+    context.ellipse(startX + direction * width * .025, startY + streamLength, width * .026, height * .018, direction * .2, 0, Math.PI * 2);
     context.fill();
     if (severity > .78) {
-      const secondX = x - direction * width * .03;
+      const secondX = secondaryNostril.x;
+      const secondY = secondaryNostril.y + height * .008;
       context.strokeStyle = `rgba(111,5,18,${severity * .72})`;
       context.lineWidth = clamp(width * .014, 2.5, 5);
       context.beginPath();
-      context.moveTo(secondX, y + height * .01);
-      context.bezierCurveTo(secondX - direction * width * .01, y + streamLength * .3, secondX + direction * width * .015, y + streamLength * .52, secondX, y + streamLength * .72);
+      context.moveTo(secondX, secondY);
+      context.bezierCurveTo(secondX - direction * width * .01, secondY + streamLength * .3, secondX + direction * width * .015, secondY + streamLength * .52, secondX, secondY + streamLength * .72);
       context.stroke();
     }
     context.restore();
@@ -561,7 +573,11 @@ function buildSwat() {
     if (count >= 3) paintBruise(faceX(.33), faceY(.4 + damageVariant.vertical), faceWidth() * .2, faceHeight() * .095, Math.min(.48, .12 + severity * .36));
     if (count >= 8) paintBruise(faceX(.67), faceY(.42 - damageVariant.vertical), faceWidth() * .17, faceHeight() * .085, Math.min(.38, severity * .3));
     if (count >= 5) paintBruise(faceX(.5), faceY(.54), faceWidth() * .09, faceHeight() * .075, Math.min(.22, severity * .18));
-    if (count >= 8) paintNosebleed(faceX(.5), faceY(.57), faceWidth(), faceHeight(), severity);
+    if (count >= 8) {
+      const leftNostril = canvasPoint(nostrilPoints.left);
+      const rightNostril = canvasPoint(nostrilPoints.right);
+      paintNosebleed(damageVariant.flip ? rightNostril : leftNostril, damageVariant.flip ? leftNostril : rightNostril, faceWidth(), faceHeight(), severity);
+    }
     if (count >= 12) { context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.13)'; context.beginPath(); context.ellipse(faceX(.5),faceY(.4),faceWidth()*.31,faceHeight()*.15,0,0,Math.PI*2); context.fill(); context.restore(); }
   };
   sourceImage.addEventListener('load', renderDamagedFace);
