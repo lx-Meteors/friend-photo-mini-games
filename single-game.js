@@ -32,6 +32,9 @@ const samples = [
   avatar('阿橙', '#ff765d', '😎'), avatar('小蓝', '#61d5ff', '😳'),
   avatar('大黄', '#ffd84d', '🤪'), avatar('桃子', '#ff8eb2', '😂')
 ];
+if (gameId === 'swat') {
+  samples[0] = { name: '阿橙', url: 'assets/swat-default-victim.png', sample: true };
+}
 
 function avatar(name, color, emoji) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" rx="52" fill="${color}"/><circle cx="150" cy="132" r="86" fill="#fff3d7"/><text x="150" y="169" font-size="92" text-anchor="middle">${emoji}</text><text x="150" y="268" font-family="sans-serif" font-size="31" font-weight="900" text-anchor="middle" fill="#1f1b2d">${name}</text></svg>`;
