@@ -1007,3 +1007,154 @@ body[data-game="swat"] .single-result>a{margin-top:10px;font-size:9px}
   body[data-game="swat"] .single-result h2{font-size:21px}
   body[data-game="swat"] .swat-result-face{width:104px}
 }
+
+/* 拍掉最终版：高利用率封面与单一大人像舞台 */
+body[data-game="swat"] .single-game-screen{
+  padding:12px;
+}
+body[data-game="swat"] .single-nav{
+  height:34px;
+}
+body[data-game="swat"] .single-intro{
+  justify-content:center;
+  padding:0 4px 16px;
+}
+body[data-game="swat"] .single-intro h1{
+  margin:2px 0 18px;
+  font-size:clamp(54px,15vw,70px);
+  line-height:.9;
+}
+body[data-game="swat"] .single-intro h1::after{
+  display:none;
+}
+.swat-cover-stage{
+  width:90%;
+  min-height:188px;
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 50% 55%,transparent 0 58px,#ff6b5b 59px 63px,transparent 64px 81px,#17131f14 82px 84px,transparent 85px),
+    radial-gradient(circle,#fff 0 2px,transparent 2.5px),
+    #bff254;
+  background-size:auto,18px 18px,auto;
+  box-shadow:7px 8px 0 var(--ink);
+  transform:none;
+}
+.swat-cover-stage>span{
+  top:10px;
+  left:12px;
+  padding:4px 9px;
+  border-radius:2px;
+  transform:rotate(-2deg);
+}
+body[data-game="swat"] .swat-cover-stage .single-preview img{
+  width:138px;
+  height:138px;
+  border-width:6px;
+  transform:none;
+}
+.swat-cover-stage>img{
+  right:-12px;
+  top:44px;
+  width:82px;
+  height:82px;
+}
+.swat-cover-stage>i{
+  right:8px;
+  bottom:8px;
+}
+body[data-game="swat"] .mini-upload,
+body[data-game="swat"] .single-intro .primary-button{
+  width:90%;
+}
+body[data-game="swat"] .mini-upload{
+  margin-top:12px;
+  padding:8px 10px;
+}
+body[data-game="swat"] .single-intro .primary-button{
+  min-height:48px;
+  margin-top:11px;
+}
+
+body[data-game="swat"] .single-play{
+  padding-top:4px;
+}
+body[data-game="swat"] .game-stage{
+  margin-top:4px;
+  border-radius:18px;
+  background-color:#fff0ad;
+  background-image:radial-gradient(circle,#ffffffc9 0 2px,transparent 2.5px);
+  background-size:18px 18px;
+  box-shadow:7px 8px 0 var(--ink),11px 12px 0 var(--pink);
+}
+.swat-scene{
+  justify-content:flex-start!important;
+}
+.swat-warning{
+  top:8px;
+  right:auto;
+  left:50%;
+  padding:4px 9px;
+  font-size:8px;
+  transform:translateX(-50%) rotate(-1deg);
+}
+.swat-face-wrap{
+  width:min(88%,340px);
+  margin-top:40px;
+  overflow:hidden;
+  border:6px solid white;
+  outline:3px solid var(--ink);
+  border-radius:24px;
+  box-shadow:7px 8px 0 var(--ink);
+}
+.swat-face-wrap>canvas{
+  border-radius:17px;
+}
+#faceCondition{
+  right:10px;
+  bottom:10px;
+  left:10px;
+  padding:7px 8px;
+  border:2px solid white;
+  border-radius:7px;
+  box-shadow:3px 4px 0 var(--pink);
+  font-size:10px;
+}
+.swat-tip{
+  right:50%;
+  bottom:7px;
+  left:auto;
+  width:max-content;
+  max-width:88%;
+  padding:3px 7px;
+  transform:translateX(50%) rotate(-1deg);
+}
+body[data-game="swat"] .swat-result-face{
+  width:132px;
+  border-radius:22px;
+}
+
+@media(max-width:699px) and (orientation:portrait){
+  body[data-game="swat"]{
+    padding:6px;
+    place-items:start center;
+  }
+  body[data-game="swat"] .app-shell{
+    width:min(calc(100vw - 12px),calc((100dvh - 12px) * .75));
+  }
+}
+
+@media(max-width:380px){
+  body[data-game="swat"] .single-game-screen{padding:10px}
+  body[data-game="swat"] .single-intro{padding-bottom:10px}
+  body[data-game="swat"] .single-intro h1{margin-bottom:15px;font-size:50px}
+  .swat-cover-stage{width:92%;min-height:166px}
+  body[data-game="swat"] .swat-cover-stage .single-preview img{width:120px;height:120px}
+  .swat-cover-stage>img{top:41px;width:70px;height:70px}
+  body[data-game="swat"] .mini-upload,
+  body[data-game="swat"] .single-intro .primary-button{width:92%}
+  body[data-game="swat"] .mini-upload{margin-top:9px;padding:6px 8px}
+  body[data-game="swat"] .single-intro .primary-button{min-height:42px;margin-top:9px}
+  .swat-face-wrap{width:90%;margin-top:36px;border-radius:20px}
+  #faceCondition{bottom:8px;font-size:8px}
+  .swat-tip{font-size:7px}
+}
