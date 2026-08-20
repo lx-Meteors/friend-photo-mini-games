@@ -1038,12 +1038,20 @@ body[data-game="swat"] .single-intro{
   padding:0 4px 16px;
 }
 body[data-game="swat"] .single-intro h1{
-  margin:2px 0 18px;
-  font-size:clamp(54px,15vw,70px);
-  line-height:.9;
+  margin:0 0 12px;
+  font-size:clamp(34px,10.5vw,48px);
+  line-height:.88;
+  letter-spacing:-.1em;
+  white-space:nowrap;
 }
+body[data-game="swat"] .single-intro h1 span{display:block;margin-bottom:5px}
 body[data-game="swat"] .single-intro h1::after{
   display:none;
+}
+body[data-game="swat"] .swat-standalone-nav b{
+  padding:5px 8px;
+  font-size:9px;
+  letter-spacing:-.04em;
 }
 .swat-cover-stage{
   width:90%;
@@ -1186,7 +1194,7 @@ body[data-game="swat"] .swat-result-face{
 @media(max-width:380px){
   body[data-game="swat"] .single-game-screen{padding:10px}
   body[data-game="swat"] .single-intro{padding-bottom:10px}
-  body[data-game="swat"] .single-intro h1{margin-bottom:15px;font-size:50px}
+  body[data-game="swat"] .single-intro h1{margin-bottom:10px;font-size:34px}
   .swat-cover-stage{width:92%;min-height:166px}
   body[data-game="swat"] .swat-cover-stage .single-preview img{width:120px;height:120px}
   .swat-cover-stage>img{top:41px;width:70px;height:70px}
