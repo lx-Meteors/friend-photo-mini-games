@@ -6,7 +6,7 @@ const configs = {
   hold: { duration: 15, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
   find: { duration: 30, command: '找到他！', sub: '连续找出 10 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
   style: { duration: 15, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
-  swat: { duration: 15, target: 20, command: '拍掉！', sub: '蚊子拍掉，朋友拍肿', success: '蚊子没了，朋友肿成猪头！', fail: '蚊子吃饱，朋友挨好！', emoji: '🐷' },
+  swat: { duration: 15, damageCap: 20, command: '拍掉！', sub: '15 秒疯狂拍，能拍多少算多少', success: '朋友已经认不出来了！', fail: '朋友已经认不出来了！', emoji: '🐷' },
   wake: { duration: 15, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
   feed: { duration: 30, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
   snap: { duration: 30, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
@@ -22,6 +22,7 @@ const state = {
   finished: false,
   startedAt: 0,
   launchTimeout: null,
+  resultTimeout: null,
   extraTimeouts: [],
   onTimeUp: null,
   score: 0
@@ -210,11 +211,13 @@ function start() {
 function clean() {
   clearInterval(state.timer);
   clearTimeout(state.launchTimeout);
+  clearTimeout(state.resultTimeout);
   state.extraTimeouts.forEach(clearTimeout);
   state.extraTimeouts = [];
   cancelAnimationFrame(state.frame);
   state.timer = null;
   state.launchTimeout = null;
+  state.resultTimeout = null;
   state.frame = null;
   $('#singleStage').replaceChildren();
   $('#singleFeedback').classList.remove('show');
@@ -245,27 +248,41 @@ function finish(success) {
   state.extraTimeouts.forEach(clearTimeout);
   state.extraTimeouts = [];
   const feedback = $('#singleFeedback');
-  feedback.textContent = success ? configs[gameId].success : configs[gameId].fail;
-  feedback.style.background = success ? 'var(--lime)' : 'var(--pink)';
-  feedback.classList.add('show');
+  const isSwat = gameId === 'swat';
+  let resultMessage = success ? configs[gameId].success : configs[gameId].fail;
+  if (!isSwat) {
+    feedback.textContent = resultMessage;
+    feedback.style.background = success ? 'var(--lime)' : 'var(--pink)';
+    feedback.classList.add('show');
+  } else {
+    feedback.classList.remove('show');
+    resultMessage = `15 秒拍掉 ${state.swatHits || 0} 只，朋友也肿了！`;
+    $('#swatHudTime').textContent = '时间到！';
+    $('#singleStage').querySelectorAll('.bug-target, .slap-fx').forEach((element) => element.remove());
+    const warning = $('#singleStage').querySelector('.swat-warning');
+    const tip = $('#singleStage').querySelector('.swat-tip');
+    if (warning) warning.textContent = '最终伤情';
+    if (tip) tip.textContent = '停两秒，看看朋友被拍成什么样了';
+  }
   const finalScore = Math.max(state.score, success ? 100 : 35);
-  if (gameId === 'swat') {
+  if (isSwat) {
     const resultFace = $('#swatResultFace');
     const damageCanvas = $('#swatFaceCanvas');
     resultFace.hidden = false;
     resultFace.innerHTML = `<img src="${damageCanvas ? damageCanvas.toDataURL('image/jpeg', .92) : faces()[0].url}" alt="${faces()[0].name} 的最终伤情">`;
     $('#swatResultHits').textContent = state.swatHits || 0;
     $('#swatResultMisses').textContent = state.swatMisses || 0;
-    $('#swatResultSwelling').textContent = `${Math.min(100, Math.round((state.swatHits || 0) / config.target * 100))}%`;
+    $('#swatResultSwelling').textContent = `${Math.min(100, Math.round((state.swatHits || 0) / config.damageCap * 100))}%`;
   }
   $('#singleScore').textContent = `${finalScore} 分`;
-  setTimeout(() => {
+  state.resultTimeout = setTimeout(() => {
     $('.single-play').hidden = true;
     $('#singleResult').hidden = false;
     $('#singleResultEmoji').textContent = success ? configs[gameId].emoji : '💥';
-    $('#singleResultTitle').textContent = feedback.textContent;
+    $('#singleResultTitle').textContent = resultMessage;
     $('#singleResultScore').textContent = `${finalScore} 分`;
-  }, 850);
+    state.resultTimeout = null;
+  }, isSwat ? 2000 : 850);
 }
 
 function setScore(value) {
@@ -416,9 +433,9 @@ function buildSwat() {
   const stage = $('#singleStage');
   const face = faces()[0];
   stage.innerHTML = `<div class="swat-scene"><div class="swat-warning">蚊子围攻中</div><div id="swatFace" class="swat-face-wrap"><canvas id="swatFaceCanvas" width="420" height="420" role="img" aria-label="${face.name} 正在逐渐鼻青脸肿"></canvas><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼朋友</div></div>`;
-  let count = 0, misses = 0, completed = false;
+  let count = 0, misses = 0;
   state.swatHits = 0; state.swatMisses = 0;
-  $('#swatHudHits').textContent = `拍中 0/${config.target} · 漏掉 0`;
+  $('#swatHudHits').textContent = '拍中 0 只 · 漏掉 0';
   $('#swatHudTime').textContent = `剩余 ${config.duration} 秒`;
   const canvas = $('#swatFaceCanvas');
   const faceWrap = $('#swatFace');
@@ -552,7 +569,7 @@ function buildSwat() {
     const size = canvas.width;
     context.clearRect(0, 0, size, size); drawCover(context, sourceImage, size);
     if (!count) return;
-    const severity = Math.min(1, count / config.target);
+    const severity = Math.min(1, count / config.damageCap);
     const pixels = context.getImageData(0, 0, size, size);
     const mainCheekX = faceX(.29), mainCheekY = faceY(.64 + damageVariant.vertical);
     const otherCheekX = faceX(.71), otherCheekY = faceY(.62 - damageVariant.vertical);
@@ -616,21 +633,20 @@ function buildSwat() {
     bug.style.setProperty('--fly-time', `${(1.05 + Math.random() * .65).toFixed(2)}s`);
     bug.addEventListener('click', () => {
       if (bug.disabled || state.finished) return;
-      bug.disabled = true; count += 1; state.swatHits = count; $('#swatHudHits').textContent = `拍中 ${count}/${config.target} · 漏掉 ${misses}`;
+      bug.disabled = true; count += 1; state.swatHits = count; $('#swatHudHits').textContent = `拍中 ${count} 只 · 漏掉 ${misses}`;
       showSlap(bug); addDamage(); bug.innerHTML = '<span class="bug-splat"></span>'; bug.classList.add('squashed');
       setScore(count * 20 - misses);
-      if (count >= config.target && !completed) { completed = true; later(() => finish(true), 650); return; }
       later(() => { bug.remove(); spawn(); if (count >= 7 && Math.random() < .36) spawn(); }, 280);
     });
     faceWrap.appendChild(bug);
     later(() => {
       if (!bug.disabled && bug.isConnected && !state.finished) {
-        bug.remove(); misses += 1; state.swatMisses = misses; $('#swatHudHits').textContent = `拍中 ${count}/${config.target} · 漏掉 ${misses}`; setScore(count * 20 - misses); spawn();
+        bug.remove(); misses += 1; state.swatMisses = misses; $('#swatHudHits').textContent = `拍中 ${count} 只 · 漏掉 ${misses}`; setScore(count * 20 - misses); spawn();
       }
     }, Math.max(1800, 3300 - count * 34));
   };
   spawn(); spawn(); spawn();
-  state.onTimeUp = () => finish(count >= config.target);
+  state.onTimeUp = () => finish(true);
 }
 
 function buildWake() {
