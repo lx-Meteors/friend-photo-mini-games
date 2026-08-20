@@ -1039,12 +1039,23 @@ body[data-game="swat"] .single-intro{
 }
 body[data-game="swat"] .single-intro h1{
   margin:0 0 12px;
+  color:#32c8f3;
   font-size:clamp(34px,10.5vw,48px);
   line-height:.88;
   letter-spacing:-.1em;
   white-space:nowrap;
+  -webkit-text-stroke:1px #3b3040;
+  paint-order:stroke fill;
+  text-shadow:2px 2px 0 #fff,4px 4px 0 #ffe342;
+  transform:rotate(-1deg);
 }
-body[data-game="swat"] .single-intro h1 span{display:block;margin-bottom:5px}
+body[data-game="swat"] .single-intro h1 span{
+  display:block;
+  margin-bottom:5px;
+  color:#ff5945;
+  text-shadow:2px 2px 0 #fff,4px 4px 0 #ff9dc6;
+  transform:rotate(1.5deg);
+}
 body[data-game="swat"] .single-intro h1::after{
   display:none;
 }
