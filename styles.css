@@ -1079,6 +1079,11 @@ body[data-game="swat"] .mini-upload.face-found{
   color:#13783d;
   background:#e8ffe8;
 }
+body[data-game="swat"] .mini-upload.face-missed{
+  color:#a52424;
+  background:#ffe5e5;
+  box-shadow:3px 4px 0 var(--orange);
+}
 body[data-game="swat"] .single-intro .primary-button:disabled{
   opacity:.58;
   cursor:wait;

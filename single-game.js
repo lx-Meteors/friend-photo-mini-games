@@ -82,7 +82,7 @@ async function detectMainFace(image) {
     }
   }
   await ensureFaceModel();
-  const detections = await faceapi.detectAllFaces(image, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: .35 }));
+  const detections = await faceapi.detectAllFaces(image, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: .25 }));
   return detections.sort((a, b) => b.box.width * b.box.height - a.box.width * a.box.height)[0]?.box || null;
 }
 
@@ -141,19 +141,22 @@ $('#singlePhotoInput').addEventListener('change', async (event) => {
   const uploadLabel = document.querySelector('label[for="singlePhotoInput"]');
   const startButton = $('#singleStart');
   uploadLabel.textContent = '正在识别人脸并自动居中…';
+  uploadLabel.classList.remove('face-found', 'face-missed');
   uploadLabel.classList.add('detecting');
   startButton.disabled = true;
   try {
     state.faces = await Promise.all(state.faces.map(autoCenterFace));
     renderPreview();
-    uploadLabel.textContent = state.faces[0].detected ? '✓ 已识别人脸并自动居中' : '✓ 已完成智能居中裁切';
+    uploadLabel.textContent = state.faces[0].detected ? '✓ 已识别人脸并自动居中' : '未识别人脸，请换一张清晰正脸照';
     uploadLabel.classList.toggle('face-found', state.faces[0].detected);
+    uploadLabel.classList.toggle('face-missed', !state.faces[0].detected);
   } catch (error) {
     console.warn('Photo processing fallback:', error);
-    uploadLabel.textContent = '照片已载入，可重新选择';
+    uploadLabel.textContent = '识别失败，请重新选择照片';
+    uploadLabel.classList.add('face-missed');
   } finally {
     uploadLabel.classList.remove('detecting');
-    startButton.disabled = false;
+    startButton.disabled = !state.faces[0]?.detected;
   }
 });
 
@@ -393,6 +396,7 @@ function buildSwat() {
   $('#swatHudHits').textContent = '拍中 0/15 · 漏掉 0';
   $('#swatHudTime').textContent = '剩余 30 秒';
   const canvas = $('#swatFaceCanvas');
+  const faceWrap = $('#swatFace');
   const context = canvas.getContext('2d', { willReadFrequently: true });
   const sourceImage = new Image();
   const damageVariant = { flip: Math.random() < .5, vertical: (Math.random() - .5) * .035, secondPalm: Math.random() > .28 };
@@ -507,7 +511,6 @@ function buildSwat() {
 
   const addDamage = () => {
     renderDamagedFace();
-    const faceWrap = $('#swatFace');
     faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
     faceWrap.dataset.damage = Math.min(5, Math.ceil(count / 4));
     $('#faceCondition').textContent = count < 4 ? '目前：脸有点红' : count < 8 ? '目前：逐渐肿胀' : count < 13 ? '目前：鼻青脸肿' : count < 18 ? '目前：亲妈难认' : '目前：建议报警';
@@ -530,9 +533,11 @@ function buildSwat() {
     const depthRoll = Math.random();
     const depthClass = depthRoll < .28 ? ' bug-far' : depthRoll > .76 ? ' bug-near' : ' bug-mid';
     bug.type = 'button'; bug.className = `bug-target flying-mosquito${depthClass}`; bug.innerHTML = '<img src="assets/mosquito-real.png" alt="">'; bug.setAttribute('aria-label','拍掉蚊子');
-    bug.style.left = `${4 + Math.random() * 70}%`; bug.style.top = `${10 + Math.random() * 65}%`;
-    bug.style.setProperty('--fly-x', `${Math.round(-34 + Math.random() * 68)}px`);
-    bug.style.setProperty('--fly-y', `${Math.round(-28 + Math.random() * 56)}px`);
+    const bugX = clamp((faceBounds.x + faceBounds.width * (.08 + Math.random() * .68)) * 100, 5, 78);
+    const bugY = clamp((faceBounds.y + faceBounds.height * (.08 + Math.random() * .7)) * 100, 5, 78);
+    bug.style.left = `${bugX}%`; bug.style.top = `${bugY}%`;
+    bug.style.setProperty('--fly-x', `${Math.round(-12 + Math.random() * 24)}px`);
+    bug.style.setProperty('--fly-y', `${Math.round(-10 + Math.random() * 20)}px`);
     bug.style.setProperty('--fly-time', `${(1.05 + Math.random() * .65).toFixed(2)}s`);
     bug.addEventListener('click', () => {
       if (bug.disabled || state.finished) return;
@@ -542,7 +547,7 @@ function buildSwat() {
       if (count >= 15 && !completed) { completed = true; later(() => finish(true), 650); return; }
       later(() => { bug.remove(); spawn(); if (count >= 7 && Math.random() < .36) spawn(); }, 280);
     });
-    stage.appendChild(bug);
+    faceWrap.appendChild(bug);
     later(() => {
       if (!bug.disabled && bug.isConnected && !state.finished) {
         bug.remove(); misses += 1; state.swatMisses = misses; $('#swatHudHits').textContent = `拍中 ${count}/15 · 漏掉 ${misses}`; setScore(count * 20 - misses); spawn();
