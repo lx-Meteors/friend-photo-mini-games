@@ -6,7 +6,7 @@ const configs = {
   hold: { duration: 15, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
   find: { duration: 30, command: '找到他！', sub: '连续找出 10 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
   style: { duration: 15, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
-  swat: { duration: 30, command: '拍掉！', sub: '蚊子拍掉，朋友拍肿', success: '蚊子没了，脸也肿了！', fail: '蚊子吃饱，朋友挨好！', emoji: '🤕' },
+  swat: { duration: 30, command: '拍掉！', sub: '蚊子拍掉，朋友拍肿', success: '蚊子没了，朋友肿成猪头！', fail: '蚊子吃饱，朋友挨好！', emoji: '🐷' },
   wake: { duration: 15, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
   feed: { duration: 30, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
   snap: { duration: 30, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
@@ -497,6 +497,43 @@ function buildSwat() {
     context.restore();
   };
 
+  const paintNosebleed = (x, y, width, height, severity) => {
+    const direction = damageVariant.flip ? -1 : 1;
+    const streamLength = height * (.12 + severity * .1);
+    const startX = x + direction * width * .035;
+    context.save();
+    context.globalCompositeOperation = 'multiply';
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.filter = 'blur(.45px)';
+    context.strokeStyle = `rgba(92,4,15,${.72 + severity * .2})`;
+    context.lineWidth = clamp(width * .022, 3.5, 7);
+    context.beginPath();
+    context.moveTo(startX, y);
+    context.bezierCurveTo(startX + direction * width * .018, y + streamLength * .28, startX - direction * width * .012, y + streamLength * .62, startX + direction * width * .025, y + streamLength);
+    context.stroke();
+    context.strokeStyle = `rgba(224,32,39,${.55 + severity * .25})`;
+    context.lineWidth = clamp(width * .008, 1.5, 3);
+    context.beginPath();
+    context.moveTo(startX - direction * 1.5, y + 2);
+    context.bezierCurveTo(startX + direction * width * .01, y + streamLength * .34, startX - direction * width * .018, y + streamLength * .66, startX + direction * width * .02, y + streamLength * .94);
+    context.stroke();
+    context.fillStyle = `rgba(104,3,16,${.72 + severity * .2})`;
+    context.beginPath();
+    context.ellipse(startX + direction * width * .025, y + streamLength, width * .026, height * .018, direction * .2, 0, Math.PI * 2);
+    context.fill();
+    if (severity > .78) {
+      const secondX = x - direction * width * .03;
+      context.strokeStyle = `rgba(111,5,18,${severity * .72})`;
+      context.lineWidth = clamp(width * .014, 2.5, 5);
+      context.beginPath();
+      context.moveTo(secondX, y + height * .01);
+      context.bezierCurveTo(secondX - direction * width * .01, y + streamLength * .3, secondX + direction * width * .015, y + streamLength * .52, secondX, y + streamLength * .72);
+      context.stroke();
+    }
+    context.restore();
+  };
+
   const renderDamagedFace = () => {
     if (!sourceImage.complete || !sourceImage.naturalWidth) return;
     const size = canvas.width;
@@ -506,8 +543,9 @@ function buildSwat() {
     const pixels = context.getImageData(0, 0, size, size);
     const mainCheekX = faceX(.29), mainCheekY = faceY(.64 + damageVariant.vertical);
     const otherCheekX = faceX(.71), otherCheekY = faceY(.62 - damageVariant.vertical);
-    bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * .31, .025 + severity * .105);
-    if (count >= 6) bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * .27, .015 + severity * .07);
+    bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * .34, .045 + severity * .2);
+    if (count >= 4) bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * .31, .025 + severity * .17);
+    if (count >= 10) bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .16, .035 + severity * .09);
     context.putImageData(pixels, 0, 0);
 
     context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
@@ -516,13 +554,14 @@ function buildSwat() {
     if (count >= 6) { const rightRed=context.createRadialGradient(otherCheekX,otherCheekY,4,otherCheekX,otherCheekY,faceWidth()*.28); rightRed.addColorStop(0,`rgba(204,37,57,${severity*.18})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
     context.restore();
 
-    paintSwelling(mainCheekX, mainCheekY, faceWidth() * .32, faceHeight() * .22, severity);
-    if (count >= 6) paintSwelling(otherCheekX, otherCheekY, faceWidth() * .27, faceHeight() * .19, severity * .8);
+    paintSwelling(mainCheekX, mainCheekY, faceWidth() * .36, faceHeight() * .25, Math.min(1, severity * 1.18));
+    if (count >= 4) paintSwelling(otherCheekX, otherCheekY, faceWidth() * .33, faceHeight() * .23, severity);
     if (count >= 2) paintPalmPrint(faceX(.25), faceY(.65 + damageVariant.vertical), clamp(faceWidth() / 300, .55, .88), damageVariant.flip ? .2 : -.2, Math.min(.26, .07 + severity * .17));
     if (count >= 9 && damageVariant.secondPalm) paintPalmPrint(faceX(.72), faceY(.61 - damageVariant.vertical), clamp(faceWidth() / 360, .46, .7), damageVariant.flip ? -.16 : .16, Math.min(.17, severity * .14));
     if (count >= 3) paintBruise(faceX(.33), faceY(.4 + damageVariant.vertical), faceWidth() * .2, faceHeight() * .095, Math.min(.48, .12 + severity * .36));
     if (count >= 8) paintBruise(faceX(.67), faceY(.42 - damageVariant.vertical), faceWidth() * .17, faceHeight() * .085, Math.min(.38, severity * .3));
     if (count >= 5) paintBruise(faceX(.5), faceY(.54), faceWidth() * .09, faceHeight() * .075, Math.min(.22, severity * .18));
+    if (count >= 8) paintNosebleed(faceX(.5), faceY(.57), faceWidth(), faceHeight(), severity);
     if (count >= 12) { context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.13)'; context.beginPath(); context.ellipse(faceX(.5),faceY(.4),faceWidth()*.31,faceHeight()*.15,0,0,Math.PI*2); context.fill(); context.restore(); }
   };
   sourceImage.addEventListener('load', renderDamagedFace);
@@ -532,7 +571,7 @@ function buildSwat() {
     renderDamagedFace();
     faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
     faceWrap.dataset.damage = Math.min(5, Math.ceil(count / 4));
-    $('#faceCondition').textContent = count < 4 ? '目前：脸有点红' : count < 8 ? '目前：逐渐肿胀' : count < 13 ? '目前：鼻青脸肿' : count < 18 ? '目前：亲妈难认' : '目前：建议报警';
+    $('#faceCondition').textContent = count < 4 ? '目前：脸有点红' : count < 8 ? '目前：双颊发肿' : count < 11 ? '目前：鼻青脸肿' : count < 14 ? '目前：鼻血警告' : '目前：猪头模式';
   };
 
   const showSlap = (bug) => {
