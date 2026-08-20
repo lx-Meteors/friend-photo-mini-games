@@ -6,7 +6,7 @@ const configs = {
   hold: { duration: 15, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
   find: { duration: 30, command: '找到他！', sub: '连续找出 10 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
   style: { duration: 15, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
-  swat: { duration: 15, damageCap: 20, command: '拍掉！', sub: '15 秒疯狂拍，能拍多少算多少', success: '朋友已经认不出来了！', fail: '朋友已经认不出来了！', emoji: '🐷' },
+  swat: { duration: 10, damageCap: 20, command: '拍掉！', sub: '10 秒疯狂拍，能拍多少算多少', success: '朋友已经认不出来了！', fail: '朋友已经认不出来了！', emoji: '🐷' },
   wake: { duration: 15, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
   feed: { duration: 30, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
   snap: { duration: 30, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
@@ -256,7 +256,7 @@ function finish(success) {
     feedback.classList.add('show');
   } else {
     feedback.classList.remove('show');
-    resultMessage = `15 秒拍掉 ${state.swatHits || 0} 只，朋友也肿了！`;
+    resultMessage = `10 秒拍掉 ${state.swatHits || 0} 只，朋友也肿了！`;
     $('#swatHudTime').textContent = '时间到！';
     $('#singleStage').querySelectorAll('.bug-target, .slap-fx').forEach((element) => element.remove());
     const warning = $('#singleStage').querySelector('.swat-warning');
