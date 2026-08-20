@@ -865,6 +865,7 @@ body[data-game="swat"] .single-hud b::before{display:none}
 /* 拍掉：Pictonico 式照片玩具封面与舞台层级 */
 body[data-game="swat"] .single-game-screen{background:linear-gradient(transparent 96%,#17131f10 96%) 0 0/100% 22px,#fff7cd}
 body[data-game="swat"] .single-nav{position:relative;z-index:12}
+body[data-game="swat"] .swat-standalone-nav{display:flex;justify-content:flex-end}
 body[data-game="swat"] .single-nav b{padding:5px 9px;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);background:var(--yellow)}
 body[data-game="swat"] .single-intro{justify-content:flex-start;padding-top:14px}
 body[data-game="swat"] .single-intro::before{top:93px;left:4px;content:'SWAT\A MODE';white-space:pre;padding:4px 6px;border:2px solid var(--ink);color:white;background:var(--orange);font:950 8px/1.05 monospace;letter-spacing:.08em;transform:rotate(-8deg)}
