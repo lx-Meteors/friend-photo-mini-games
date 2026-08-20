@@ -33,7 +33,7 @@ const samples = [
   avatar('大黄', '#ffd84d', '🤪'), avatar('桃子', '#ff8eb2', '😂')
 ];
 if (gameId === 'swat') {
-  samples[0] = { name: '阿橙', url: 'assets/swat-default-victim.png', sample: true };
+  samples[0] = { name: '阿橙', url: 'assets/swat-default-victim.png?v=4dd01a3', sample: true };
 }
 
 function avatar(name, color, emoji) {
