@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#b9f23c">
+  <title>别动，脸上有蚊子</title>
+  <meta name="description" content="上传朋友照片，瞄准脸上的蚊子开拍！">
+  <link rel="canonical" href="https://lx-meteors.github.io/friend-photo-mini-games/dont-move-mosquito.html">
+  <link rel="image_src" href="https://lx-meteors.github.io/friend-photo-mini-games/assets/promo-dont-move-mosquito-3x4.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://lx-meteors.github.io/friend-photo-mini-games/dont-move-mosquito.html">
+  <meta property="og:title" content="别动，脸上有蚊子">
+  <meta property="og:description" content="上传朋友照片，瞄准脸上的蚊子开拍！">
+  <meta property="og:image" content="https://lx-meteors.github.io/friend-photo-mini-games/assets/promo-dont-move-mosquito-3x4.png">
+  <meta property="og:image:secure_url" content="https://lx-meteors.github.io/friend-photo-mini-games/assets/promo-dont-move-mosquito-3x4.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1086">
+  <meta property="og:image:height" content="1448">
+  <meta property="og:image:alt" content="《别动，脸上有蚊子》游戏宣传图">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="别动，脸上有蚊子">
+  <meta name="twitter:description" content="上传朋友照片，瞄准脸上的蚊子开拍！">
+  <meta name="twitter:image" content="https://lx-meteors.github.io/friend-photo-mini-games/assets/promo-dont-move-mosquito-3x4.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-game="swat">
+  <main class="app-shell">
+    <section class="screen single-game-screen active">
+      <header class="single-nav swat-standalone-nav"><b>10秒挑战</b></header>
+      <div class="single-intro">
+        <h1><span>别动！</span>脸上有蚊子</h1>
+        <div class="swat-cover-stage">
+          <span>本 场 受 害 者</span>
+          <div id="singlePreview" class="single-preview"></div>
+          <img src="assets/mosquito-real.png" alt="" aria-hidden="true">
+          <i>已被蚊子锁定</i>
+        </div>
+        <label class="mini-upload" for="singlePhotoInput">＋ 上传朋友照片当主角</label>
+        <input id="singlePhotoInput" type="file" accept="image/*" hidden>
+        <button id="singleStart" class="primary-button" type="button"><b>READY?</b> 开拍！别手软 <span>→</span></button>
+      </div>
+      <div class="single-play" hidden>
+        <div class="single-hud swat-hud">
+          <b id="singleScore">0 分</b>
+          <span id="swatHudHits">拍中 0 只 · 漏掉 0</span>
+          <span id="swatHudTime">剩余 10 秒</span>
+          <button id="singleRestart" type="button" aria-label="重新开始">↻</button>
+        </div>
+        <div id="singleTimer" class="timer-track"><span></span></div>
+        <div id="singleStage" class="game-stage"></div>
+        <div id="singleFeedback" class="feedback"></div>
+      </div>
+      <div id="singleResult" class="single-result" hidden>
+        <p id="singleResultEmoji">🤕</p>
+        <h2 id="singleResultTitle">蚊子没了，脸也肿了！</h2>
+        <div id="swatResultFace" class="swat-result-face" hidden></div>
+        <strong id="singleResultScore">100 分</strong>
+        <div class="swat-result-report">
+          <span>巴掌 <b id="swatResultHits">0</b></span>
+          <span>漏蚊 <b id="swatResultMisses">0</b></span>
+          <span>肿胀 <b id="swatResultSwelling">0%</b></span>
+        </div>
+        <button id="singleAgain" class="primary-button dark" type="button">再拍一顿</button>
+        <button id="singleNextVictim" class="secondary-button next-victim-button" type="button">换下一个受害者</button>
+      </div>
+    </section>
+  </main>
+  <script src="assets/face-api.min.js"></script>
+  <script src="single-game.js"></script>
+</body>
+</html>
