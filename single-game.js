@@ -79,33 +79,58 @@ function stopSwatMusic() {
   swatMusicTimer = null;
 }
 
-function playSwatHit(hitCount) {
+function playSwatHit() {
   const audio = getSwatAudioContext();
   if (!audio) return;
-  const duration = .075;
+  const duration = .11;
   const buffer = audio.createBuffer(1, Math.ceil(audio.sampleRate * duration), audio.sampleRate);
   const samples = buffer.getChannelData(0);
   for (let index = 0; index < samples.length; index += 1) {
     const decay = 1 - index / samples.length;
-    samples[index] = (Math.random() * 2 - 1) * decay * decay;
+    samples[index] = (Math.random() * 2 - 1) * Math.pow(decay, 2.35);
   }
   const noise = audio.createBufferSource();
-  const filter = audio.createBiquadFilter();
-  const gain = audio.createGain();
   noise.buffer = buffer;
-  filter.type = 'bandpass';
-  filter.frequency.value = 900;
-  filter.Q.value = .65;
-  gain.gain.setValueAtTime(.11, audio.currentTime);
-  gain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + duration);
-  noise.connect(filter).connect(gain).connect(audio.destination);
+
+  const crackFilter = audio.createBiquadFilter();
+  const crackGain = audio.createGain();
+  crackFilter.type = 'bandpass';
+  crackFilter.frequency.value = 1150;
+  crackFilter.Q.value = .7;
+  crackGain.gain.setValueAtTime(.18, audio.currentTime);
+  crackGain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + duration);
+  noise.connect(crackFilter).connect(crackGain).connect(audio.destination);
+
+  const bodyFilter = audio.createBiquadFilter();
+  const bodyGain = audio.createGain();
+  bodyFilter.type = 'lowpass';
+  bodyFilter.frequency.value = 430;
+  bodyGain.gain.setValueAtTime(.12, audio.currentTime);
+  bodyGain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + duration * .9);
+  noise.connect(bodyFilter).connect(bodyGain).connect(audio.destination);
   noise.start();
-  playSwatTone(175, .1, .075, 'triangle');
-  playSwatTone(580 + (hitCount % 5) * 55, .07, .045, 'square', .018);
-  if (hitCount % 5 === 0) {
-    playSwatTone(660, .14, .055, 'sine', .06);
-    playSwatTone(880, .16, .05, 'sine', .13);
-  }
+
+  const thump = audio.createOscillator();
+  const thumpGain = audio.createGain();
+  thump.type = 'sine';
+  thump.frequency.setValueAtTime(138, audio.currentTime);
+  thump.frequency.exponentialRampToValueAtTime(58, audio.currentTime + .105);
+  thumpGain.gain.setValueAtTime(.105, audio.currentTime);
+  thumpGain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + .115);
+  thump.connect(thumpGain).connect(audio.destination);
+  thump.start();
+  thump.stop(audio.currentTime + .13);
+}
+
+function playSwatCry() {
+  if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) return;
+  window.speechSynthesis.cancel();
+  const cry = new SpeechSynthesisUtterance('哎呀！');
+  cry.lang = 'zh-CN';
+  cry.rate = 1.28;
+  cry.pitch = 1.32;
+  cry.volume = .82;
+  window.speechSynthesis.speak(cry);
 }
 
 function playSwatMiss() {
@@ -303,6 +328,7 @@ function start() {
 
 function clean() {
   stopSwatMusic();
+  if (gameId === 'swat' && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   clearInterval(state.timer);
   clearTimeout(state.launchTimeout);
   clearTimeout(state.resultTimeout);
@@ -887,6 +913,7 @@ function buildSwat() {
       if (bug.disabled || state.finished) return;
       bug.disabled = true; count += 1; state.swatHits = count; $('#swatHudHits').textContent = `拍中 ${count} 只 · 漏掉 ${misses}`;
       showSlap(bug); addDamage(); playSwatHit(count);
+      if (count % 5 === 0) playSwatCry();
       navigator.vibrate?.(count % 5 === 0 ? [24, 12, 38] : 18);
       stage.classList.remove('impact-feedback'); void stage.offsetWidth; stage.classList.add('impact-feedback');
       later(() => stage.classList.remove('impact-feedback'), 180);
