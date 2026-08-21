@@ -817,7 +817,7 @@ body[data-game] .feedback { transform: translate(-50%,-50%) rotate(-5deg); }
 body[data-game] .single-result { background: var(--yellow); transform: rotate(-2deg); }
 body[data-game] .single-result::before { position: absolute; top: -18px; left: calc(50% - 45px); width: 90px; height: 27px; content: ''; background: #ff78b4aa; transform: rotate(4deg); }
 
-/* 拍掉：移动蚊子与朋友伤情系统 */
+/* 拍掉：移动蚊子与人物伤情系统 */
 body[data-game="swat"] .game-stage {
   overflow:hidden;
   background-color:#dff89b;
@@ -1258,4 +1258,77 @@ body[data-game="swat"] .single-result .next-victim-button{
   body[data-game="swat"] .single-result>strong{font-size:29px}
   body[data-game="swat"] .single-result .primary-button{min-height:32px;margin-top:4px}
   body[data-game="swat"] .single-result .next-victim-button{min-height:30px;margin-top:4px}
+}
+
+/* Results are photo-first: the final transformed image fills the card. */
+body[data-game="swat"] .single-result{
+  width:96%;
+  padding:8px 9px 10px;
+  transform:none;
+}
+body[data-game="swat"] .single-result::before{display:none}
+body[data-game="swat"] .single-result>p{display:none}
+body[data-game="swat"] .single-result h2{
+  max-width:none;
+  margin:0 0 5px;
+  font-size:18px;
+  line-height:1.05;
+}
+body[data-game="swat"] .swat-result-face{
+  width:100%;
+  max-width:340px;
+  margin:0 auto 7px;
+  border-width:4px;
+  border-radius:10px;
+  box-shadow:5px 6px 0 var(--pink);
+}
+body[data-game="swat"] .swat-result-face>img{object-fit:contain}
+body[data-game="swat"] .swat-result-summary{
+  display:grid;
+  grid-template-columns:76px minmax(0,1fr);
+  gap:7px;
+  align-items:stretch;
+  margin-top:4px;
+}
+body[data-game="swat"] .swat-result-summary>#singleResultScore{
+  display:grid;
+  place-items:center;
+  color:var(--orange);
+  background:white;
+  border:3px solid var(--ink);
+  font:900 24px/1 Impact,sans-serif;
+  text-shadow:1px 1px 0 var(--ink);
+}
+body[data-game="swat"] .swat-result-report{
+  gap:3px;
+  margin:0;
+}
+body[data-game="swat"] .swat-result-report span{
+  display:grid;
+  place-items:center;
+  padding:2px 1px;
+  font-size:7px;
+}
+body[data-game="swat"] .swat-result-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:7px;
+}
+body[data-game="swat"] .single-result .swat-result-actions .primary-button,
+body[data-game="swat"] .single-result .swat-result-actions .next-victim-button{
+  width:100%;
+  min-height:34px;
+  margin:0;
+  padding:5px 4px;
+  font-size:11px;
+}
+
+@media(max-width:380px){
+  body[data-game="swat"] .single-result{width:97%;padding:7px 8px 8px}
+  body[data-game="swat"] .single-result h2{font-size:16px}
+  body[data-game="swat"] .swat-result-face{width:100%;max-width:300px;margin-bottom:6px}
+  body[data-game="swat"] .swat-result-summary{grid-template-columns:68px minmax(0,1fr);gap:5px}
+  body[data-game="swat"] .swat-result-summary>#singleResultScore{font-size:21px}
+  body[data-game="swat"] .swat-result-actions{gap:5px;margin-top:6px}
 }

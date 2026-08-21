@@ -22,7 +22,7 @@
   <meta name="twitter:title" content="别动，脸上有蚊子">
   <meta name="twitter:description" content="上传人物照片，瞄准脸上的蚊子开拍！">
   <meta name="twitter:image" content="https://lx-meteors.github.io/friend-photo-mini-games/assets/promo-dont-move-mosquito-3x4.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=fullresult">
 </head>
 <body data-game="swat">
   <main class="app-shell">
@@ -31,7 +31,7 @@
       <div class="single-intro">
         <h1><span>别动！</span>脸上有蚊子</h1>
         <div class="swat-cover-stage">
-          <span>本 场 受 害 者</span>
+          <span>本 场 主 角</span>
           <div id="singlePreview" class="single-preview"></div>
           <img src="assets/mosquito-real.png" alt="" aria-hidden="true">
           <i>已被蚊子锁定</i>
@@ -55,14 +55,18 @@
         <p id="singleResultEmoji">🤕</p>
         <h2 id="singleResultTitle">蚊子没了，脸也肿了！</h2>
         <div id="swatResultFace" class="swat-result-face" hidden></div>
-        <strong id="singleResultScore">100 分</strong>
-        <div class="swat-result-report">
-          <span>巴掌 <b id="swatResultHits">0</b></span>
-          <span>漏蚊 <b id="swatResultMisses">0</b></span>
-          <span>肿胀 <b id="swatResultSwelling">0%</b></span>
+        <div class="swat-result-summary">
+          <strong id="singleResultScore">100 分</strong>
+          <div class="swat-result-report">
+            <span>巴掌 <b id="swatResultHits">0</b></span>
+            <span>漏蚊 <b id="swatResultMisses">0</b></span>
+            <span>肿胀 <b id="swatResultSwelling">0%</b></span>
+          </div>
         </div>
-        <button id="singleAgain" class="primary-button dark" type="button">再拍一顿</button>
-        <button id="singleNextVictim" class="secondary-button next-victim-button" type="button">换一位主角</button>
+        <div class="swat-result-actions">
+          <button id="singleAgain" class="primary-button dark" type="button">再拍一顿</button>
+          <button id="singleNextVictim" class="secondary-button next-victim-button" type="button">换一位主角</button>
+        </div>
       </div>
     </section>
   </main>
