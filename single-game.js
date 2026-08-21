@@ -548,24 +548,6 @@ function buildSwat() {
     context.restore();
   };
 
-  const paintShoePrint = (x, y, scale, rotation, alpha) => {
-    context.save();
-    context.translate(x, y);
-    context.rotate(rotation);
-    context.scale(scale, scale);
-    context.globalCompositeOperation = 'multiply';
-    context.filter = 'blur(1.4px)';
-    context.fillStyle = `rgba(48,31,35,${alpha})`;
-    context.beginPath(); context.ellipse(0, 29, 23, 27, 0, 0, Math.PI * 2); context.fill();
-    context.beginPath(); context.ellipse(0, -17, 30, 39, -.04, 0, Math.PI * 2); context.fill();
-    context.fillStyle = `rgba(255,225,195,${alpha * .48})`;
-    [-38,-20,-2,16].forEach((offset) => context.fillRect(-27, offset - 4, 54, 8));
-    context.strokeStyle = `rgba(255,225,195,${alpha * .42})`;
-    context.lineWidth = 7;
-    context.beginPath(); context.moveTo(-19, 38); context.lineTo(19, 20); context.stroke();
-    context.restore();
-  };
-
   const paintHeadSmoke = (intensity) => {
     const centerX = canvas.width * (faceBounds.x + faceBounds.width / 2);
     const baseY = Math.max(faceHeight() * .12, faceY(face.detected ? -.12 : .07));
@@ -638,26 +620,6 @@ function buildSwat() {
     context.restore();
   };
 
-  const paintBandage = (x, y, width, rotation) => {
-    context.save();
-    context.translate(x, y);
-    context.rotate(rotation);
-    context.fillStyle = '#f4c990';
-    context.strokeStyle = '#5a3528';
-    context.lineWidth = Math.max(2, width * .045);
-    context.beginPath();
-    context.rect(-width / 2, -width * .13, width, width * .26);
-    context.fill();
-    context.stroke();
-    context.fillStyle = '#fff0c9';
-    context.fillRect(-width * .15, -width * .12, width * .3, width * .24);
-    context.fillStyle = 'rgba(108,61,40,.45)';
-    [-.34, -.26, .26, .34].forEach((offset) => {
-      context.beginPath(); context.arc(width * offset, 0, width * .018, 0, Math.PI * 2); context.fill();
-    });
-    context.restore();
-  };
-
   const paintNosebleed = (primaryNostril, secondaryNostril, width, height, severity) => {
     const direction = primaryNostril.x < secondaryNostril.x ? -1 : 1;
     const streamLength = height * (.12 + severity * .1);
@@ -704,14 +666,15 @@ function buildSwat() {
     if (!damageCount) return;
     const severity = Math.min(1, damageCount / config.damageCap);
     const stage = Math.min(5, Math.max(1, Math.round(damageCount / 5)));
-    if (damageCount >= 20) stretchFace(damageCount >= 25 ? 1.14 : 1.07, .99);
+    if (damageCount >= 20) stretchFace(damageCount >= 25 ? 1.22 : 1.07, damageCount >= 25 ? .96 : .99);
     const pixels = context.getImageData(0, 0, size, size);
     const mainCheekX = faceX(.29), mainCheekY = faceY(.64 + damageVariant.vertical);
     const otherCheekX = faceX(.71), otherCheekY = faceY(.62 - damageVariant.vertical);
     if (damageCount >= 25) {
-      bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .58, .18);
-      bulgePixels(pixels, faceX(.31), faceY(.4), faceWidth() * .15, .22);
-      bulgePixels(pixels, faceX(.69), faceY(.4), faceWidth() * .14, -.08);
+      bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .58, .28);
+      bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * .43, .42);
+      bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * .42, .4);
+      bulgePixels(pixels, faceX(.5), faceY(.74), faceWidth() * .32, .3);
     }
     bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * (.37 + stage * .008), .12 + severity * .2);
     if (damageCount >= 10) bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * (.36 + stage * .008), .1 + severity * .18);
@@ -745,8 +708,6 @@ function buildSwat() {
       context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.24)'; context.beginPath(); context.ellipse(faceX(.5),faceY(.4),faceWidth()*.36,faceHeight()*.18,0,0,Math.PI*2); context.fill(); context.restore();
     }
     if (damageCount >= 25) {
-      paintShoePrint(faceX(.22), faceY(.29), clamp(faceWidth() / 410, .5, .68), damageVariant.flip ? -.38 : .38, .28);
-      paintBandage(faceX(.67), faceY(.28), faceWidth() * .31, damageVariant.flip ? -.2 : .2);
       paintComicStar(faceX(.08), faceY(.17), faceWidth() * .12, -.2, '#ffe23e');
       paintComicStar(faceX(.91), faceY(.24), faceWidth() * .09, .24, '#ff5e79');
     }
