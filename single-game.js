@@ -566,39 +566,50 @@ function buildSwat() {
     context.restore();
   };
 
-  const paintExplosionHair = (centerX, hairlineY, width, height, intensity) => {
-    context.save();
-    context.translate(centerX, hairlineY);
-    context.shadowColor = 'rgba(24,12,10,.42)';
-    context.shadowBlur = 7;
-    context.shadowOffsetY = 4;
-    const hair = context.createLinearGradient(0, -height, 0, height * .12);
-    hair.addColorStop(0, '#090707');
-    hair.addColorStop(.58, '#17100f');
-    hair.addColorStop(1, '#3b2018');
-    context.fillStyle = hair;
-    context.beginPath();
-    context.moveTo(-width * .54, height * .12);
-    for (let i = 0; i <= 28; i += 1) {
-      const progress = i / 28;
-      const angle = Math.PI * .94 + progress * Math.PI * 1.12;
-      const chaos = .72 + Math.abs(Math.sin(i * 7.31)) * .58;
-      const spike = i % 2 ? .5 + intensity * .08 : chaos + intensity * .16;
-      context.lineTo(Math.cos(angle) * width * .52 * spike, Math.sin(angle) * height * spike);
-    }
-    context.lineTo(width * .54, height * .12);
-    context.quadraticCurveTo(0, height * .36, -width * .54, height * .12);
-    context.closePath();
-    context.fill();
-    context.shadowColor = 'transparent';
-    context.strokeStyle = 'rgba(255,224,126,.28)';
-    context.lineWidth = Math.max(2, width * .012);
-    for (let i = -4; i <= 4; i += 1) {
+  const paintExplosionHair = (intensity) => {
+    const snapshot = document.createElement('canvas');
+    snapshot.width = canvas.width; snapshot.height = canvas.height;
+    snapshot.getContext('2d').drawImage(canvas, 0, 0);
+    const centerX = canvas.width * (faceBounds.x + faceBounds.width / 2);
+    const centerY = faceY(.13);
+    const radiusX = faceWidth() * .43;
+    const radiusY = faceHeight() * .13;
+    const sampleTop = Math.max(0, faceY(-.05));
+    const sampleHeight = Math.min(canvas.height - sampleTop, faceHeight() * .31);
+    const sampleLeft = canvas.width * (faceBounds.x + faceBounds.width * .08);
+    const sampleWidth = faceWidth() * .84;
+    const spikeCount = 21;
+
+    for (let i = 0; i < spikeCount; i += 1) {
+      const progress = i / (spikeCount - 1);
+      const angle = Math.PI * (1.04 + progress * .92);
+      const chaos = .72 + Math.abs(Math.sin(i * 8.73 + 1.7)) * .62;
+      const length = faceHeight() * (.2 + intensity * .08) * chaos;
+      const baseX = centerX + Math.cos(angle) * radiusX;
+      const baseY = centerY + Math.sin(angle) * radiusY;
+      const baseWidth = faceWidth() * (.055 + (i % 3) * .012);
+      const sampleX = sampleLeft + sampleWidth * clamp(progress - .04, 0, .9);
+      const sampleSliceWidth = Math.min(sampleWidth * .11, canvas.width - sampleX);
+
+      context.save();
+      context.translate(baseX, baseY);
+      context.rotate(angle + Math.PI / 2);
       context.beginPath();
-      context.moveTo(i * width * .08, height * .04);
-      context.quadraticCurveTo(i * width * .11, -height * (.45 + Math.abs(i % 2) * .18), i * width * .13, -height * (.7 + Math.abs(i % 3) * .08));
-      context.stroke();
+      context.moveTo(-baseWidth, 7);
+      context.lineTo(baseWidth, 7);
+      context.lineTo((i % 2 ? -1 : 1) * baseWidth * .12, -length);
+      context.closePath();
+      context.clip();
+      context.drawImage(snapshot, sampleX, sampleTop, sampleSliceWidth, sampleHeight, -baseWidth * 1.25, -length, baseWidth * 2.5, length + 12);
+      context.restore();
     }
+
+    context.save();
+    context.globalAlpha = .88;
+    context.beginPath();
+    context.ellipse(centerX, centerY + radiusY * .3, radiusX * 1.04, radiusY * 1.18, 0, Math.PI, Math.PI * 2);
+    context.clip();
+    context.drawImage(snapshot, 0, 0);
     context.restore();
   };
 
@@ -704,7 +715,7 @@ function buildSwat() {
     if (damageCount >= 20) bulgePixels(pixels, faceX(.5), faceY(.74), faceWidth() * .31, .2 + severity * .28);
     context.putImageData(pixels, 0, 0);
 
-    if (damageCount >= 15) paintExplosionHair(faceX(.5), faceY(.16), faceWidth() * .98, faceHeight() * .5, severity);
+    if (damageCount >= 15) paintExplosionHair(severity);
 
     context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
     const leftRed = context.createRadialGradient(mainCheekX,mainCheekY,4,mainCheekX,mainCheekY,faceWidth()*.38);
