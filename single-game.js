@@ -463,26 +463,6 @@ function buildSwat() {
     targetContext.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, size, size);
   };
 
-  const stretchFace = (scaleX, scaleY) => {
-    const snapshot = document.createElement('canvas');
-    snapshot.width = canvas.width; snapshot.height = canvas.height;
-    snapshot.getContext('2d').drawImage(canvas, 0, 0);
-    const sourceX = canvas.width * (faceBounds.x - faceBounds.width * .06);
-    const sourceY = canvas.height * (faceBounds.y - faceBounds.height * .04);
-    const sourceWidth = faceWidth() * 1.12;
-    const sourceHeight = faceHeight() * 1.08;
-    const centerX = canvas.width * (faceBounds.x + faceBounds.width / 2);
-    const centerY = canvas.height * (faceBounds.y + faceBounds.height / 2);
-    const destinationWidth = sourceWidth * scaleX;
-    const destinationHeight = sourceHeight * scaleY;
-    context.save();
-    context.beginPath();
-    context.ellipse(centerX, centerY, destinationWidth * .5, destinationHeight * .52, 0, 0, Math.PI * 2);
-    context.clip();
-    context.drawImage(snapshot, sourceX, sourceY, sourceWidth, sourceHeight, centerX - destinationWidth / 2, centerY - destinationHeight / 2, destinationWidth, destinationHeight);
-    context.restore();
-  };
-
   const bulgePixels = (imageData, centerX, centerY, radius, strength) => {
     const { width, height, data } = imageData;
     const source = new Uint8ClampedArray(data);
@@ -620,6 +600,55 @@ function buildSwat() {
     context.restore();
   };
 
+  const paintPigFeatures = (leftNostril, rightNostril) => {
+    const noseX = (leftNostril.x + rightNostril.x) / 2;
+    const noseY = (leftNostril.y + rightNostril.y) / 2;
+    const snoutWidth = faceWidth() * .27;
+    const snoutHeight = faceHeight() * .125;
+    const earY = faceY(.16);
+    context.save();
+    context.lineJoin = 'round';
+    context.strokeStyle = '#18131f';
+    context.lineWidth = clamp(faceWidth() * .018, 4, 7);
+    [[faceX(.12), -.18], [faceX(.88), .18]].forEach(([earX, rotation], index) => {
+      context.save();
+      context.translate(earX, earY);
+      context.rotate(rotation * (damageVariant.flip ? -1 : 1));
+      context.fillStyle = 'rgba(255,128,158,.94)';
+      context.beginPath();
+      context.moveTo(index ? -faceWidth() * .02 : faceWidth() * .02, faceHeight() * .055);
+      context.quadraticCurveTo(index ? faceWidth() * .02 : -faceWidth() * .02, -faceHeight() * .13, index ? faceWidth() * .16 : -faceWidth() * .16, -faceHeight() * .17);
+      context.quadraticCurveTo(index ? faceWidth() * .15 : -faceWidth() * .15, faceHeight() * .025, index ? -faceWidth() * .02 : faceWidth() * .02, faceHeight() * .055);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.fillStyle = 'rgba(255,204,211,.9)';
+      context.beginPath();
+      context.moveTo(0, faceHeight() * .02);
+      context.quadraticCurveTo(index ? faceWidth() * .035 : -faceWidth() * .035, -faceHeight() * .085, index ? faceWidth() * .105 : -faceWidth() * .105, -faceHeight() * .115);
+      context.quadraticCurveTo(index ? faceWidth() * .095 : -faceWidth() * .095, -faceHeight() * .005, 0, faceHeight() * .02);
+      context.fill();
+      context.restore();
+    });
+
+    context.translate(noseX, noseY + faceHeight() * .012);
+    context.rotate(damageVariant.flip ? -.025 : .025);
+    context.fillStyle = 'rgba(255,137,157,.76)';
+    context.strokeStyle = 'rgba(24,19,31,.9)';
+    context.lineWidth = clamp(faceWidth() * .015, 3, 6);
+    context.beginPath();
+    context.ellipse(0, 0, snoutWidth / 2, snoutHeight / 2, 0, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.fillStyle = 'rgba(86,31,48,.84)';
+    [leftNostril, rightNostril].forEach((nostril) => {
+      context.beginPath();
+      context.ellipse(nostril.x - noseX, nostril.y - noseY - faceHeight() * .012, snoutWidth * .085, snoutHeight * .18, 0, 0, Math.PI * 2);
+      context.fill();
+    });
+    context.restore();
+  };
+
   const paintNosebleed = (primaryNostril, secondaryNostril, width, height, severity) => {
     const direction = primaryNostril.x < secondaryNostril.x ? -1 : 1;
     const streamLength = height * (.12 + severity * .1);
@@ -666,15 +695,13 @@ function buildSwat() {
     if (!damageCount) return;
     const severity = Math.min(1, damageCount / config.damageCap);
     const stage = Math.min(5, Math.max(1, Math.round(damageCount / 5)));
-    if (damageCount >= 20) stretchFace(damageCount >= 25 ? 1.22 : 1.07, damageCount >= 25 ? .96 : .99);
     const pixels = context.getImageData(0, 0, size, size);
     const mainCheekX = faceX(.29), mainCheekY = faceY(.64 + damageVariant.vertical);
     const otherCheekX = faceX(.71), otherCheekY = faceY(.62 - damageVariant.vertical);
     if (damageCount >= 25) {
-      bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .58, .28);
-      bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * .43, .42);
-      bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * .42, .4);
-      bulgePixels(pixels, faceX(.5), faceY(.74), faceWidth() * .32, .3);
+      bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * .35, .31);
+      bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * .34, .29);
+      bulgePixels(pixels, faceX(.5), faceY(.75), faceWidth() * .26, .2);
     }
     bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * (.37 + stage * .008), .12 + severity * .2);
     if (damageCount >= 10) bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * (.36 + stage * .008), .1 + severity * .18);
@@ -697,9 +724,10 @@ function buildSwat() {
     paintBruise(faceX(.33), faceY(.4 + damageVariant.vertical), faceWidth() * .24, faceHeight() * .12, Math.min(.72, .22 + severity * .52));
     if (damageCount >= 10) paintBruise(faceX(.67), faceY(.42 - damageVariant.vertical), faceWidth() * .22, faceHeight() * .11, Math.min(.65, .16 + severity * .46));
     if (damageCount >= 15) paintBruise(faceX(.5), faceY(.54), faceWidth() * .13, faceHeight() * .1, Math.min(.42, .12 + severity * .32));
+    const leftNostril = canvasPoint(nostrilPoints.left);
+    const rightNostril = canvasPoint(nostrilPoints.right);
+    if (damageCount >= 25) paintPigFeatures(leftNostril, rightNostril);
     if (damageCount >= 10) {
-      const leftNostril = canvasPoint(nostrilPoints.left);
-      const rightNostril = canvasPoint(nostrilPoints.right);
       paintNosebleed(damageVariant.flip ? rightNostril : leftNostril, damageVariant.flip ? leftNostril : rightNostril, faceWidth(), faceHeight(), severity);
     }
     if (damageCount >= 20) {
@@ -742,7 +770,7 @@ function buildSwat() {
     displayPreparedDamage(count);
     faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
     faceWrap.dataset.damage = Math.min(5, Math.floor(count / 5));
-    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：掌印盖章' : count < 15 ? '10掌：鼻血警告' : count < 20 ? '15掌：头顶冒烟' : count < 25 ? '20掌：脑袋宕机' : '25掌：面目全非';
+    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：掌印盖章' : count < 15 ? '10掌：鼻血警告' : count < 20 ? '15掌：头顶冒烟' : count < 25 ? '20掌：脑袋宕机' : '25掌：猪头套餐';
   };
 
   const showSlap = (bug) => {
