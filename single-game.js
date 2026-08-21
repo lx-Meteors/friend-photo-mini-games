@@ -566,47 +566,53 @@ function buildSwat() {
     context.restore();
   };
 
-  const paintExplosionHair = (intensity) => {
-    const snapshot = document.createElement('canvas');
-    snapshot.width = canvas.width; snapshot.height = canvas.height;
-    snapshot.getContext('2d').drawImage(canvas, 0, 0);
+  const paintHeadSmoke = (intensity) => {
     const centerX = canvas.width * (faceBounds.x + faceBounds.width / 2);
-    const hairlineRatio = face.detected ? .02 : .18;
-    const clipBottom = Math.max(0, faceY(hairlineRatio));
-    const sampleTop = Math.max(0, faceY(face.detected ? -.3 : -.12));
-    const sampleBottom = Math.max(sampleTop + 8, Math.min(canvas.height, faceY(hairlineRatio + .01)));
-    const sampleHeight = sampleBottom - sampleTop;
-    const sampleLeft = Math.max(0, canvas.width * (faceBounds.x - faceBounds.width * .03));
-    const sampleWidth = Math.min(canvas.width - sampleLeft, faceWidth() * 1.06);
-    const tuftCount = 9;
+    const baseY = Math.max(faceHeight() * .12, faceY(face.detected ? -.12 : .07));
+    const puffRadius = clamp(faceWidth() * .09, 18, 36);
+    const plumeCount = intensity > .85 ? 3 : 2;
     context.save();
-    context.beginPath();
-    context.rect(0, 0, canvas.width, clipBottom);
-    context.clip();
-    for (let i = 0; i < tuftCount; i += 1) {
-      const progress = i / (tuftCount - 1);
-      const baseX = centerX + (progress - .5) * faceWidth() * .92;
-      const baseY = clipBottom + faceHeight() * .035;
-      const sway = Math.sin(i * 5.17) * faceWidth() * .06;
-      const lift = faceHeight() * (.25 + intensity * .07 + Math.abs(Math.sin(i * 3.9)) * .12);
-      const tipX = baseX + sway;
-      const tipY = baseY - lift;
-      const baseHalf = faceWidth() * (.07 + (i % 2) * .012);
-      const tipHalf = baseHalf * .42;
-      const sampleX = sampleLeft + progress * Math.max(0, sampleWidth - sampleWidth / tuftCount);
-      const sampleSliceWidth = Math.min(sampleWidth / tuftCount * 1.45, canvas.width - sampleX);
-      context.save();
+    context.lineCap = 'round';
+    for (let i = 0; i < plumeCount; i += 1) {
+      const offset = plumeCount === 2 ? (i ? .2 : -.2) : (i - 1) * .22;
+      const startX = centerX + faceWidth() * offset;
+      const endX = startX + (i % 2 ? 1 : -1) * faceWidth() * (.055 + intensity * .025);
+      const endY = Math.max(puffRadius * 1.25, baseY - faceHeight() * (.18 + intensity * .1 + i * .09));
+      context.strokeStyle = 'rgba(82,80,88,.88)';
+      context.lineWidth = clamp(faceWidth() * .022, 4, 8);
       context.beginPath();
-      context.moveTo(baseX - baseHalf, baseY);
-      context.lineTo(baseX + baseHalf, baseY);
-      context.lineTo(tipX + tipHalf, tipY + faceHeight() * .035);
-      context.lineTo(tipX, tipY);
-      context.lineTo(tipX - tipHalf, tipY + faceHeight() * .035);
-      context.closePath();
-      context.clip();
-      context.globalAlpha = .96;
-      context.drawImage(snapshot, sampleX, sampleTop, sampleSliceWidth, sampleHeight, Math.min(baseX - baseHalf, tipX - tipHalf), tipY, Math.max(baseX + baseHalf, tipX + tipHalf) - Math.min(baseX - baseHalf, tipX - tipHalf), baseY - tipY + 2);
-      context.restore();
+      context.moveTo(startX, baseY);
+      context.bezierCurveTo(startX - faceWidth() * .08, baseY - faceHeight() * .07, endX + faceWidth() * .08, endY + faceHeight() * .07, endX, endY);
+      context.stroke();
+
+      for (let trailIndex = 1; trailIndex <= 3; trailIndex += 1) {
+        const trailProgress = trailIndex / 4;
+        const trailX = startX + (endX - startX) * trailProgress + Math.sin(trailIndex * 2.7 + i) * puffRadius * .28;
+        const trailY = baseY + (endY - baseY) * trailProgress;
+        context.fillStyle = `rgba(208,210,215,${.48 + trailIndex * .1})`;
+        context.strokeStyle = 'rgba(82,80,88,.72)';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.arc(trailX, trailY, puffRadius * (.15 + trailIndex * .07), 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+      }
+
+      const puffOffsets = [[0,0],[-.7,.12],[.66,.08],[-.34,-.5],[.34,-.56],[0,.45]];
+      context.fillStyle = 'rgba(231,233,236,.96)';
+      context.strokeStyle = 'rgba(54,51,61,.9)';
+      context.lineWidth = clamp(puffRadius * .08, 2, 3.5);
+      puffOffsets.forEach(([px, py], puffIndex) => {
+        const radius = puffRadius * (puffIndex ? .62 : .88);
+        context.beginPath();
+        context.arc(endX + px * puffRadius, endY + py * puffRadius, radius, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+      });
+      context.fillStyle = 'rgba(255,255,255,.75)';
+      context.beginPath();
+      context.arc(endX - puffRadius * .2, endY - puffRadius * .28, puffRadius * .22, 0, Math.PI * 2);
+      context.fill();
     }
     context.restore();
   };
@@ -713,7 +719,7 @@ function buildSwat() {
     if (damageCount >= 20) bulgePixels(pixels, faceX(.5), faceY(.74), faceWidth() * .26, .1 + severity * .14);
     context.putImageData(pixels, 0, 0);
 
-    if (damageCount >= 15) paintExplosionHair(severity);
+    if (damageCount >= 15) paintHeadSmoke(severity);
 
     context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
     const leftRed = context.createRadialGradient(mainCheekX,mainCheekY,4,mainCheekX,mainCheekY,faceWidth()*.38);
@@ -775,7 +781,7 @@ function buildSwat() {
     displayPreparedDamage(count);
     faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
     faceWrap.dataset.damage = Math.min(5, Math.floor(count / 5));
-    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：掌印盖章' : count < 15 ? '10掌：鼻血警告' : count < 20 ? '15掌：头发炸了' : count < 25 ? '20掌：猪头模式' : '25掌：面目全非';
+    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：掌印盖章' : count < 15 ? '10掌：鼻血警告' : count < 20 ? '15掌：头顶冒烟' : count < 25 ? '20掌：脑袋宕机' : '25掌：面目全非';
   };
 
   const showSlap = (bug) => {
