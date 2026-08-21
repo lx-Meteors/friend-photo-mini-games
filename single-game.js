@@ -6,7 +6,7 @@ const configs = {
   hold: { duration: 15, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
   find: { duration: 30, command: '找到他！', sub: '连续找出 10 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
   style: { duration: 15, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
-  swat: { duration: 10, damageCap: 25, command: '拍掉！', sub: '10 秒疯狂拍，能拍多少算多少', success: '朋友已经认不出来了！', fail: '朋友已经认不出来了！', emoji: '🐷' },
+  swat: { duration: 10, damageCap: 25, command: '拍掉！', sub: '10 秒疯狂拍，能拍多少算多少', success: '主角已经认不出来了！', fail: '主角已经认不出来了！', emoji: '🐷' },
   wake: { duration: 15, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
   feed: { duration: 30, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
   snap: { duration: 30, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
@@ -259,13 +259,13 @@ function finish(success) {
     feedback.classList.add('show');
   } else {
     feedback.classList.remove('show');
-    resultMessage = `10 秒拍掉 ${state.swatHits || 0} 只，朋友也肿了！`;
+    resultMessage = `10 秒拍掉 ${state.swatHits || 0} 只，主角也肿了！`;
     $('#swatHudTime').textContent = '时间到！';
     $('#singleStage').querySelectorAll('.bug-target, .slap-fx').forEach((element) => element.remove());
     const warning = $('#singleStage').querySelector('.swat-warning');
     const tip = $('#singleStage').querySelector('.swat-tip');
     if (warning) warning.textContent = '最终伤情';
-    if (tip) tip.textContent = '停两秒，看看朋友被拍成什么样了';
+    if (tip) tip.textContent = '停两秒，看看主角被拍成什么样了';
   }
   const finalScore = Math.max(state.score, success ? 100 : 35);
   if (isSwat) {
@@ -435,7 +435,7 @@ function buildStyle() {
 function buildSwat() {
   const stage = $('#singleStage');
   const face = faces()[0];
-  stage.innerHTML = `<div class="swat-scene"><div class="swat-warning">正在生成五档恶搞脸…</div><div id="swatFace" class="swat-face-wrap"><canvas id="swatFaceCanvas" width="420" height="420" role="img" aria-label="${face.name} 正在逐渐鼻青脸肿"></canvas><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼朋友</div></div>`;
+  stage.innerHTML = `<div class="swat-scene"><div class="swat-warning">正在生成五档恶搞脸…</div><div id="swatFace" class="swat-face-wrap"><canvas id="swatFaceCanvas" width="420" height="420" role="img" aria-label="${face.name} 正在逐渐鼻青脸肿"></canvas><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼主角</div></div>`;
   let count = 0, misses = 0;
   state.swatHits = 0; state.swatMisses = 0;
   $('#swatHudHits').textContent = '拍中 0 只 · 漏掉 0';
