@@ -600,52 +600,43 @@ function buildSwat() {
     context.restore();
   };
 
-  const paintPigFeatures = (leftNostril, rightNostril) => {
-    const noseX = (leftNostril.x + rightNostril.x) / 2;
-    const noseY = (leftNostril.y + rightNostril.y) / 2;
-    const snoutWidth = faceWidth() * .27;
-    const snoutHeight = faceHeight() * .125;
-    const earY = faceY(.16);
+  const paintSwollenShutEye = (x, y, rotation, severity) => {
+    const radiusX = faceWidth() * (.135 + severity * .012);
+    const radiusY = faceHeight() * (.052 + severity * .012);
+    const sampleX = Math.round(clamp(x, 0, canvas.width - 1));
+    const sampleY = Math.round(clamp(y + faceHeight() * .075, 0, canvas.height - 1));
+    const skin = context.getImageData(sampleX, sampleY, 1, 1).data;
     context.save();
-    context.lineJoin = 'round';
-    context.strokeStyle = '#18131f';
-    context.lineWidth = clamp(faceWidth() * .018, 4, 7);
-    [[faceX(.12), -.18], [faceX(.88), .18]].forEach(([earX, rotation], index) => {
-      context.save();
-      context.translate(earX, earY);
-      context.rotate(rotation * (damageVariant.flip ? -1 : 1));
-      context.fillStyle = 'rgba(255,128,158,.94)';
-      context.beginPath();
-      context.moveTo(index ? -faceWidth() * .02 : faceWidth() * .02, faceHeight() * .055);
-      context.quadraticCurveTo(index ? faceWidth() * .02 : -faceWidth() * .02, -faceHeight() * .13, index ? faceWidth() * .16 : -faceWidth() * .16, -faceHeight() * .17);
-      context.quadraticCurveTo(index ? faceWidth() * .15 : -faceWidth() * .15, faceHeight() * .025, index ? -faceWidth() * .02 : faceWidth() * .02, faceHeight() * .055);
-      context.closePath();
-      context.fill();
-      context.stroke();
-      context.fillStyle = 'rgba(255,204,211,.9)';
-      context.beginPath();
-      context.moveTo(0, faceHeight() * .02);
-      context.quadraticCurveTo(index ? faceWidth() * .035 : -faceWidth() * .035, -faceHeight() * .085, index ? faceWidth() * .105 : -faceWidth() * .105, -faceHeight() * .115);
-      context.quadraticCurveTo(index ? faceWidth() * .095 : -faceWidth() * .095, -faceHeight() * .005, 0, faceHeight() * .02);
-      context.fill();
-      context.restore();
-    });
-
-    context.translate(noseX, noseY + faceHeight() * .012);
-    context.rotate(damageVariant.flip ? -.025 : .025);
-    context.fillStyle = 'rgba(255,137,157,.76)';
-    context.strokeStyle = 'rgba(24,19,31,.9)';
-    context.lineWidth = clamp(faceWidth() * .015, 3, 6);
+    context.translate(x, y);
+    context.rotate(rotation);
+    context.filter = 'blur(1.1px)';
+    context.fillStyle = `rgba(${skin[0]},${skin[1]},${skin[2]},.86)`;
     context.beginPath();
-    context.ellipse(0, 0, snoutWidth / 2, snoutHeight / 2, 0, 0, Math.PI * 2);
+    context.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
     context.fill();
+    const swelling = context.createRadialGradient(0, -radiusY * .3, radiusY * .12, 0, 0, radiusX);
+    swelling.addColorStop(0, 'rgba(242,151,153,.3)');
+    swelling.addColorStop(.55, 'rgba(126,55,80,.34)');
+    swelling.addColorStop(1, 'rgba(71,29,60,0)');
+    context.globalCompositeOperation = 'multiply';
+    context.fillStyle = swelling;
+    context.beginPath();
+    context.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
+    context.fill();
+    context.filter = 'none';
+    context.strokeStyle = 'rgba(48,25,39,.82)';
+    context.lineWidth = clamp(faceWidth() * .016, 3, 6);
+    context.lineCap = 'round';
+    context.beginPath();
+    context.moveTo(-radiusX * .72, 0);
+    context.quadraticCurveTo(0, radiusY * .34, radiusX * .72, 0);
     context.stroke();
-    context.fillStyle = 'rgba(86,31,48,.84)';
-    [leftNostril, rightNostril].forEach((nostril) => {
-      context.beginPath();
-      context.ellipse(nostril.x - noseX, nostril.y - noseY - faceHeight() * .012, snoutWidth * .085, snoutHeight * .18, 0, 0, Math.PI * 2);
-      context.fill();
-    });
+    context.strokeStyle = 'rgba(255,203,196,.46)';
+    context.lineWidth = Math.max(1.5, faceWidth() * .006);
+    context.beginPath();
+    context.moveTo(-radiusX * .58, -radiusY * .32);
+    context.quadraticCurveTo(0, -radiusY * .55, radiusX * .55, -radiusY * .3);
+    context.stroke();
     context.restore();
   };
 
@@ -721,12 +712,15 @@ function buildSwat() {
     if (damageCount >= 10) paintSwelling(otherCheekX, otherCheekY, faceWidth() * .4, faceHeight() * .29, Math.min(1, .2 + severity));
     paintPalmPrint(faceX(.24), faceY(.65 + damageVariant.vertical), clamp(faceWidth() / 300, .56, .82), damageVariant.flip ? .2 : -.2, Math.min(.44, .22 + severity * .22));
     if (damageCount >= 10) paintPalmPrint(faceX(.73), faceY(.61 - damageVariant.vertical), clamp(faceWidth() / 330, .5, .72), damageVariant.flip ? -.16 : .16, Math.min(.38, .18 + severity * .2));
+    if (damageCount >= 20) {
+      paintSwollenShutEye(faceX(.32), faceY(.4 + damageVariant.vertical), damageVariant.flip ? -.035 : .035, severity);
+      paintSwollenShutEye(faceX(.68), faceY(.41 - damageVariant.vertical), damageVariant.flip ? .035 : -.035, severity);
+    }
     paintBruise(faceX(.33), faceY(.4 + damageVariant.vertical), faceWidth() * .24, faceHeight() * .12, Math.min(.72, .22 + severity * .52));
     if (damageCount >= 10) paintBruise(faceX(.67), faceY(.42 - damageVariant.vertical), faceWidth() * .22, faceHeight() * .11, Math.min(.65, .16 + severity * .46));
     if (damageCount >= 15) paintBruise(faceX(.5), faceY(.54), faceWidth() * .13, faceHeight() * .1, Math.min(.42, .12 + severity * .32));
     const leftNostril = canvasPoint(nostrilPoints.left);
     const rightNostril = canvasPoint(nostrilPoints.right);
-    if (damageCount >= 25) paintPigFeatures(leftNostril, rightNostril);
     if (damageCount >= 10) {
       paintNosebleed(damageVariant.flip ? rightNostril : leftNostril, damageVariant.flip ? leftNostril : rightNostril, faceWidth(), faceHeight(), severity);
     }
@@ -770,7 +764,7 @@ function buildSwat() {
     displayPreparedDamage(count);
     faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
     faceWrap.dataset.damage = Math.min(5, Math.floor(count / 5));
-    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：掌印盖章' : count < 15 ? '10掌：鼻血警告' : count < 20 ? '15掌：头顶冒烟' : count < 25 ? '20掌：脑袋宕机' : '25掌：猪头套餐';
+    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：掌印盖章' : count < 15 ? '10掌：鼻血警告' : count < 20 ? '15掌：头顶冒烟' : count < 25 ? '20掌：脑袋宕机' : '25掌：眼肿成缝';
   };
 
   const showSlap = (bug) => {
