@@ -324,6 +324,32 @@ if (nextVictimButton) {
   });
 }
 
+const downloadResultButton = $('#singleDownloadResult');
+if (downloadResultButton) {
+  downloadResultButton.addEventListener('click', () => {
+    const damageCanvas = $('#swatFaceCanvas');
+    const fallbackImage = $('#swatResultFace img');
+    const save = (url) => {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `别动-脸上有蚊子-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    };
+    if (damageCanvas?.toBlob) {
+      damageCanvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        save(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1800);
+      }, 'image/jpeg', .94);
+      return;
+    }
+    if (fallbackImage?.src) save(fallbackImage.src);
+  });
+}
+
 $('#singleStart').addEventListener('click', start);
 $('#singleAgain').addEventListener('click', start);
 $('#singleRestart').addEventListener('click', start);
@@ -418,7 +444,6 @@ function finish(success) {
     resultFace.innerHTML = `<img src="${damageCanvas ? damageCanvas.toDataURL('image/jpeg', .92) : faces()[0].url}" alt="${faces()[0].name} 的最终伤情">`;
     $('#swatResultHits').textContent = state.swatHits || 0;
     $('#swatResultMisses').textContent = state.swatMisses || 0;
-    $('#swatResultSwelling').textContent = `${Math.min(100, Math.round((state.swatHits || 0) / config.damageCap * 100))}%`;
   }
   $('#singleScore').textContent = `${finalScore} 分`;
   state.resultTimeout = setTimeout(() => {

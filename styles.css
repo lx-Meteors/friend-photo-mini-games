@@ -1302,6 +1302,7 @@ body[data-game="swat"] .swat-result-summary>#singleResultScore{
   text-shadow:1px 1px 0 var(--ink);
 }
 body[data-game="swat"] .swat-result-report{
+  grid-template-columns:repeat(2,1fr);
   gap:3px;
   margin:0;
 }
@@ -1318,12 +1319,19 @@ body[data-game="swat"] .swat-result-actions{
   margin-top:7px;
 }
 body[data-game="swat"] .single-result .swat-result-actions .primary-button,
-body[data-game="swat"] .single-result .swat-result-actions .next-victim-button{
+body[data-game="swat"] .single-result .swat-result-actions .next-victim-button,
+body[data-game="swat"] .single-result .swat-result-actions .download-result-button{
   width:100%;
   min-height:34px;
   margin:0;
   padding:5px 4px;
   font-size:11px;
+}
+body[data-game="swat"] .single-result .swat-result-actions .download-result-button{
+  grid-column:1/-1;
+  color:var(--ink);
+  background:var(--blue);
+  box-shadow:4px 4px 0 var(--ink);
 }
 
 @media(max-width:380px){
