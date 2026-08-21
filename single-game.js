@@ -199,7 +199,12 @@ async function detectMainFace(image) {
     .detectAllFaces(image, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: .25 }))
     .withFaceLandmarks(true);
   const largest = detections.sort((a, b) => b.detection.box.width * b.detection.box.height - a.detection.box.width * a.detection.box.height)[0];
-  return largest ? { box: largest.detection.box, nose: largest.landmarks.getNose() } : null;
+  return largest ? {
+    box: largest.detection.box,
+    nose: largest.landmarks.getNose(),
+    leftEye: largest.landmarks.getLeftEye(),
+    rightEye: largest.landmarks.getRightEye()
+  } : null;
 }
 
 async function autoCenterFace(face) {
@@ -240,13 +245,23 @@ async function autoCenterFace(face) {
     x: clamp((point.x - sourceX) / cropSize, 0, 1),
     y: clamp((point.y - sourceY) / cropSize, 0, 1)
   });
+  const averagePoint = (points) => points?.length ? {
+    x: points.reduce((total, point) => total + point.x, 0) / points.length,
+    y: points.reduce((total, point) => total + point.y, 0) / points.length
+  } : null;
   const nostrils = detection?.nose?.length >= 9 ? {
     left: mapPoint(detection.nose[5]),
     right: mapPoint(detection.nose[7])
   } : null;
+  const leftEyeCenter = averagePoint(detection?.leftEye);
+  const rightEyeCenter = averagePoint(detection?.rightEye);
+  const eyes = leftEyeCenter && rightEyeCenter ? {
+    left: mapPoint(leftEyeCenter),
+    right: mapPoint(rightEyeCenter)
+  } : null;
   const centeredUrl = await canvasToObjectUrl(canvas);
   if (face.objectUrl?.startsWith('blob:')) URL.revokeObjectURL(face.objectUrl);
-  return { ...face, url: centeredUrl, objectUrl: centeredUrl, faceBox: mappedBox, nostrils, detected: Boolean(box && nostrils) };
+  return { ...face, url: centeredUrl, objectUrl: centeredUrl, faceBox: mappedBox, nostrils, eyes, detected: Boolean(box && nostrils && eyes) };
 }
 
 if (gameId === 'swat') {
@@ -573,6 +588,10 @@ function buildSwat() {
     left: { x: faceBounds.x + faceBounds.width * .455, y: faceBounds.y + faceBounds.height * .57 },
     right: { x: faceBounds.x + faceBounds.width * .545, y: faceBounds.y + faceBounds.height * .57 }
   };
+  const eyePoints = face.eyes || {
+    left: { x: faceBounds.x + faceBounds.width * .32, y: faceBounds.y + faceBounds.height * .4 },
+    right: { x: faceBounds.x + faceBounds.width * .68, y: faceBounds.y + faceBounds.height * .41 }
+  };
   const canvasPoint = (point) => ({ x: canvas.width * point.x, y: canvas.height * point.y });
 
   const drawCover = (targetContext, image, size) => {
@@ -831,12 +850,15 @@ function buildSwat() {
     if (damageCount >= 10) paintSwelling(otherCheekX, otherCheekY, faceWidth() * .4, faceHeight() * .29, Math.min(1, .2 + severity));
     paintPalmPrint(faceX(.24), faceY(.65 + damageVariant.vertical), clamp(faceWidth() / 300, .56, .82), damageVariant.flip ? .2 : -.2, Math.min(.44, .22 + severity * .22));
     if (damageCount >= 10) paintPalmPrint(faceX(.73), faceY(.61 - damageVariant.vertical), clamp(faceWidth() / 330, .5, .72), damageVariant.flip ? -.16 : .16, Math.min(.38, .18 + severity * .2));
+    const leftEye = canvasPoint(eyePoints.left);
+    const rightEye = canvasPoint(eyePoints.right);
+    const eyeLineAngle = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
     if (damageCount >= 20) {
-      paintSwollenShutEye(faceX(.32), faceY(.4 + damageVariant.vertical), damageVariant.flip ? -.035 : .035, severity);
-      paintSwollenShutEye(faceX(.68), faceY(.41 - damageVariant.vertical), damageVariant.flip ? .035 : -.035, severity);
+      paintSwollenShutEye(leftEye.x, leftEye.y, eyeLineAngle, severity);
+      paintSwollenShutEye(rightEye.x, rightEye.y, eyeLineAngle, severity);
     }
-    paintBruise(faceX(.33), faceY(.4 + damageVariant.vertical), faceWidth() * .24, faceHeight() * .12, Math.min(.72, .22 + severity * .52));
-    if (damageCount >= 10) paintBruise(faceX(.67), faceY(.42 - damageVariant.vertical), faceWidth() * .22, faceHeight() * .11, Math.min(.65, .16 + severity * .46));
+    paintBruise(leftEye.x, leftEye.y, faceWidth() * .24, faceHeight() * .12, Math.min(.72, .22 + severity * .52));
+    if (damageCount >= 10) paintBruise(rightEye.x, rightEye.y, faceWidth() * .22, faceHeight() * .11, Math.min(.65, .16 + severity * .46));
     if (damageCount >= 15) paintBruise(faceX(.5), faceY(.54), faceWidth() * .13, faceHeight() * .1, Math.min(.42, .12 + severity * .32));
     const leftNostril = canvasPoint(nostrilPoints.left);
     const rightNostril = canvasPoint(nostrilPoints.right);
@@ -844,9 +866,9 @@ function buildSwat() {
       paintNosebleed(damageVariant.flip ? rightNostril : leftNostril, damageVariant.flip ? leftNostril : rightNostril, faceWidth(), faceHeight(), severity);
     }
     if (damageCount >= 20) {
-      paintBruise(faceX(.31), faceY(.39), faceWidth() * .25, faceHeight() * .12, .52);
-      paintBruise(faceX(.69), faceY(.4), faceWidth() * .24, faceHeight() * .12, .48);
-      context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.24)'; context.beginPath(); context.ellipse(faceX(.5),faceY(.4),faceWidth()*.36,faceHeight()*.18,0,0,Math.PI*2); context.fill(); context.restore();
+      paintBruise(leftEye.x, leftEye.y, faceWidth() * .25, faceHeight() * .12, .52);
+      paintBruise(rightEye.x, rightEye.y, faceWidth() * .24, faceHeight() * .12, .48);
+      context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.24)'; context.beginPath(); context.ellipse((leftEye.x + rightEye.x) / 2,(leftEye.y + rightEye.y) / 2,faceWidth()*.36,faceHeight()*.18,eyeLineAngle,0,Math.PI*2); context.fill(); context.restore();
     }
     if (damageCount >= 25) {
       paintComicStar(faceX(.08), faceY(.17), faceWidth() * .12, -.2, '#ffe23e');
