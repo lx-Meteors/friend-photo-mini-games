@@ -571,45 +571,43 @@ function buildSwat() {
     snapshot.width = canvas.width; snapshot.height = canvas.height;
     snapshot.getContext('2d').drawImage(canvas, 0, 0);
     const centerX = canvas.width * (faceBounds.x + faceBounds.width / 2);
-    const centerY = faceY(.13);
-    const radiusX = faceWidth() * .43;
-    const radiusY = faceHeight() * .13;
-    const sampleTop = Math.max(0, faceY(-.05));
-    const sampleHeight = Math.min(canvas.height - sampleTop, faceHeight() * .31);
-    const sampleLeft = canvas.width * (faceBounds.x + faceBounds.width * .08);
-    const sampleWidth = faceWidth() * .84;
-    const spikeCount = 21;
-
-    for (let i = 0; i < spikeCount; i += 1) {
-      const progress = i / (spikeCount - 1);
-      const angle = Math.PI * (1.04 + progress * .92);
-      const chaos = .72 + Math.abs(Math.sin(i * 8.73 + 1.7)) * .62;
-      const length = faceHeight() * (.2 + intensity * .08) * chaos;
-      const baseX = centerX + Math.cos(angle) * radiusX;
-      const baseY = centerY + Math.sin(angle) * radiusY;
-      const baseWidth = faceWidth() * (.055 + (i % 3) * .012);
-      const sampleX = sampleLeft + sampleWidth * clamp(progress - .04, 0, .9);
-      const sampleSliceWidth = Math.min(sampleWidth * .11, canvas.width - sampleX);
-
+    const hairlineRatio = face.detected ? .02 : .18;
+    const clipBottom = Math.max(0, faceY(hairlineRatio));
+    const sampleTop = Math.max(0, faceY(face.detected ? -.3 : -.12));
+    const sampleBottom = Math.max(sampleTop + 8, Math.min(canvas.height, faceY(hairlineRatio + .01)));
+    const sampleHeight = sampleBottom - sampleTop;
+    const sampleLeft = Math.max(0, canvas.width * (faceBounds.x - faceBounds.width * .03));
+    const sampleWidth = Math.min(canvas.width - sampleLeft, faceWidth() * 1.06);
+    const tuftCount = 9;
+    context.save();
+    context.beginPath();
+    context.rect(0, 0, canvas.width, clipBottom);
+    context.clip();
+    for (let i = 0; i < tuftCount; i += 1) {
+      const progress = i / (tuftCount - 1);
+      const baseX = centerX + (progress - .5) * faceWidth() * .92;
+      const baseY = clipBottom + faceHeight() * .035;
+      const sway = Math.sin(i * 5.17) * faceWidth() * .06;
+      const lift = faceHeight() * (.25 + intensity * .07 + Math.abs(Math.sin(i * 3.9)) * .12);
+      const tipX = baseX + sway;
+      const tipY = baseY - lift;
+      const baseHalf = faceWidth() * (.07 + (i % 2) * .012);
+      const tipHalf = baseHalf * .42;
+      const sampleX = sampleLeft + progress * Math.max(0, sampleWidth - sampleWidth / tuftCount);
+      const sampleSliceWidth = Math.min(sampleWidth / tuftCount * 1.45, canvas.width - sampleX);
       context.save();
-      context.translate(baseX, baseY);
-      context.rotate(angle + Math.PI / 2);
       context.beginPath();
-      context.moveTo(-baseWidth, 7);
-      context.lineTo(baseWidth, 7);
-      context.lineTo((i % 2 ? -1 : 1) * baseWidth * .12, -length);
+      context.moveTo(baseX - baseHalf, baseY);
+      context.lineTo(baseX + baseHalf, baseY);
+      context.lineTo(tipX + tipHalf, tipY + faceHeight() * .035);
+      context.lineTo(tipX, tipY);
+      context.lineTo(tipX - tipHalf, tipY + faceHeight() * .035);
       context.closePath();
       context.clip();
-      context.drawImage(snapshot, sampleX, sampleTop, sampleSliceWidth, sampleHeight, -baseWidth * 1.25, -length, baseWidth * 2.5, length + 12);
+      context.globalAlpha = .96;
+      context.drawImage(snapshot, sampleX, sampleTop, sampleSliceWidth, sampleHeight, Math.min(baseX - baseHalf, tipX - tipHalf), tipY, Math.max(baseX + baseHalf, tipX + tipHalf) - Math.min(baseX - baseHalf, tipX - tipHalf), baseY - tipY + 2);
       context.restore();
     }
-
-    context.save();
-    context.globalAlpha = .88;
-    context.beginPath();
-    context.ellipse(centerX, centerY + radiusY * .3, radiusX * 1.04, radiusY * 1.18, 0, Math.PI, Math.PI * 2);
-    context.clip();
-    context.drawImage(snapshot, 0, 0);
     context.restore();
   };
 
@@ -700,33 +698,33 @@ function buildSwat() {
     if (!damageCount) return;
     const severity = Math.min(1, damageCount / config.damageCap);
     const stage = Math.min(5, Math.max(1, Math.round(damageCount / 5)));
-    if (damageCount >= 20) stretchFace(damageCount >= 25 ? 1.3 : 1.15, damageCount >= 25 ? .94 : .98);
+    if (damageCount >= 20) stretchFace(damageCount >= 25 ? 1.14 : 1.07, .99);
     const pixels = context.getImageData(0, 0, size, size);
     const mainCheekX = faceX(.29), mainCheekY = faceY(.64 + damageVariant.vertical);
     const otherCheekX = faceX(.71), otherCheekY = faceY(.62 - damageVariant.vertical);
     if (damageCount >= 25) {
-      bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .62, .42);
-      bulgePixels(pixels, faceX(.31), faceY(.4), faceWidth() * .17, .5);
-      bulgePixels(pixels, faceX(.69), faceY(.4), faceWidth() * .15, -.22);
+      bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .58, .18);
+      bulgePixels(pixels, faceX(.31), faceY(.4), faceWidth() * .15, .22);
+      bulgePixels(pixels, faceX(.69), faceY(.4), faceWidth() * .14, -.08);
     }
-    bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * (.4 + stage * .012), .22 + severity * .38);
-    if (damageCount >= 10) bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * (.39 + stage * .01), .2 + severity * .36);
-    if (damageCount >= 15) bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .24, .16 + severity * .26);
-    if (damageCount >= 20) bulgePixels(pixels, faceX(.5), faceY(.74), faceWidth() * .31, .2 + severity * .28);
+    bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * (.37 + stage * .008), .12 + severity * .2);
+    if (damageCount >= 10) bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * (.36 + stage * .008), .1 + severity * .18);
+    if (damageCount >= 15) bulgePixels(pixels, faceX(.5), faceY(.54), faceWidth() * .21, .08 + severity * .12);
+    if (damageCount >= 20) bulgePixels(pixels, faceX(.5), faceY(.74), faceWidth() * .26, .1 + severity * .14);
     context.putImageData(pixels, 0, 0);
 
     if (damageCount >= 15) paintExplosionHair(severity);
 
     context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
     const leftRed = context.createRadialGradient(mainCheekX,mainCheekY,4,mainCheekX,mainCheekY,faceWidth()*.38);
-    leftRed.addColorStop(0,`rgba(224,38,55,${.3 + severity * .42})`); leftRed.addColorStop(1,'rgba(218,45,58,0)'); context.fillStyle=leftRed; context.fillRect(0,0,size,size);
-    if (damageCount >= 10) { const rightRed=context.createRadialGradient(otherCheekX,otherCheekY,4,otherCheekX,otherCheekY,faceWidth()*.37); rightRed.addColorStop(0,`rgba(220,33,54,${.28 + severity*.38})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
+    leftRed.addColorStop(0,`rgba(224,38,55,${.22 + severity * .25})`); leftRed.addColorStop(1,'rgba(218,45,58,0)'); context.fillStyle=leftRed; context.fillRect(0,0,size,size);
+    if (damageCount >= 10) { const rightRed=context.createRadialGradient(otherCheekX,otherCheekY,4,otherCheekX,otherCheekY,faceWidth()*.37); rightRed.addColorStop(0,`rgba(220,33,54,${.2 + severity*.22})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
     context.restore();
 
     paintSwelling(mainCheekX, mainCheekY, faceWidth() * .42, faceHeight() * .3, Math.min(1, .35 + severity));
     if (damageCount >= 10) paintSwelling(otherCheekX, otherCheekY, faceWidth() * .4, faceHeight() * .29, Math.min(1, .2 + severity));
-    paintPalmPrint(faceX(.24), faceY(.65 + damageVariant.vertical), clamp(faceWidth() / 250, .72, 1.12), damageVariant.flip ? .2 : -.2, Math.min(.68, .38 + severity * .32));
-    if (damageCount >= 10) paintPalmPrint(faceX(.73), faceY(.61 - damageVariant.vertical), clamp(faceWidth() / 270, .66, .98), damageVariant.flip ? -.16 : .16, Math.min(.58, .3 + severity * .28));
+    paintPalmPrint(faceX(.24), faceY(.65 + damageVariant.vertical), clamp(faceWidth() / 300, .56, .82), damageVariant.flip ? .2 : -.2, Math.min(.44, .22 + severity * .22));
+    if (damageCount >= 10) paintPalmPrint(faceX(.73), faceY(.61 - damageVariant.vertical), clamp(faceWidth() / 330, .5, .72), damageVariant.flip ? -.16 : .16, Math.min(.38, .18 + severity * .2));
     paintBruise(faceX(.33), faceY(.4 + damageVariant.vertical), faceWidth() * .24, faceHeight() * .12, Math.min(.72, .22 + severity * .52));
     if (damageCount >= 10) paintBruise(faceX(.67), faceY(.42 - damageVariant.vertical), faceWidth() * .22, faceHeight() * .11, Math.min(.65, .16 + severity * .46));
     if (damageCount >= 15) paintBruise(faceX(.5), faceY(.54), faceWidth() * .13, faceHeight() * .1, Math.min(.42, .12 + severity * .32));
@@ -736,12 +734,12 @@ function buildSwat() {
       paintNosebleed(damageVariant.flip ? rightNostril : leftNostril, damageVariant.flip ? leftNostril : rightNostril, faceWidth(), faceHeight(), severity);
     }
     if (damageCount >= 20) {
-      paintBruise(faceX(.31), faceY(.39), faceWidth() * .28, faceHeight() * .14, .66);
-      paintBruise(faceX(.69), faceY(.4), faceWidth() * .27, faceHeight() * .14, .62);
+      paintBruise(faceX(.31), faceY(.39), faceWidth() * .25, faceHeight() * .12, .52);
+      paintBruise(faceX(.69), faceY(.4), faceWidth() * .24, faceHeight() * .12, .48);
       context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.24)'; context.beginPath(); context.ellipse(faceX(.5),faceY(.4),faceWidth()*.36,faceHeight()*.18,0,0,Math.PI*2); context.fill(); context.restore();
     }
     if (damageCount >= 25) {
-      paintShoePrint(faceX(.22), faceY(.33), clamp(faceWidth() / 360, .58, .82), damageVariant.flip ? -.38 : .38, .46);
+      paintShoePrint(faceX(.22), faceY(.29), clamp(faceWidth() / 410, .5, .68), damageVariant.flip ? -.38 : .38, .28);
       paintBandage(faceX(.67), faceY(.28), faceWidth() * .31, damageVariant.flip ? -.2 : .2);
       paintComicStar(faceX(.08), faceY(.17), faceWidth() * .12, -.2, '#ffe23e');
       paintComicStar(faceX(.91), faceY(.24), faceWidth() * .09, .24, '#ff5e79');
