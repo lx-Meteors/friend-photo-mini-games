@@ -999,7 +999,7 @@ function buildSwat() {
       if (bug.disabled || state.finished) return;
       bug.disabled = true; count += 1; state.swatHits = count; $('#swatHudHits').textContent = `拍中 ${count} 只 · 漏掉 ${misses}`;
       showSlap(bug); addDamage(); playSwatHit(count);
-      if (count % 5 === 0) playSwatCry();
+      if (count === 5 || count === 15 || count === 25) playSwatCry();
       navigator.vibrate?.(count % 5 === 0 ? [24, 12, 38] : 18);
       stage.classList.remove('impact-feedback'); void stage.offsetWidth; stage.classList.add('impact-feedback');
       later(() => stage.classList.remove('impact-feedback'), 180);
