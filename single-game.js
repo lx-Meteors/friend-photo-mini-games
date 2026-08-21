@@ -28,6 +28,95 @@ const state = {
   score: 0
 };
 
+let swatAudioContext = null;
+let swatMusicTimer = null;
+let swatMusicStep = 0;
+
+function getSwatAudioContext() {
+  if (gameId !== 'swat') return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!swatAudioContext) swatAudioContext = new AudioContextClass();
+  if (swatAudioContext.state === 'suspended') swatAudioContext.resume().catch(() => {});
+  return swatAudioContext;
+}
+
+function playSwatTone(frequency, duration, volume, type = 'sine', delay = 0) {
+  const audio = getSwatAudioContext();
+  if (!audio) return;
+  const startAt = audio.currentTime + delay;
+  const oscillator = audio.createOscillator();
+  const gain = audio.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, startAt);
+  gain.gain.setValueAtTime(.0001, startAt);
+  gain.gain.exponentialRampToValueAtTime(volume, startAt + .012);
+  gain.gain.exponentialRampToValueAtTime(.0001, startAt + duration);
+  oscillator.connect(gain).connect(audio.destination);
+  oscillator.start(startAt);
+  oscillator.stop(startAt + duration + .02);
+}
+
+function startSwatMusic() {
+  if (gameId !== 'swat') return;
+  getSwatAudioContext();
+  clearInterval(swatMusicTimer);
+  swatMusicStep = 0;
+  const notes = [262, 330, 392, 330, 294, 370, 440, 370];
+  const tick = () => {
+    if (state.finished) return;
+    const note = notes[swatMusicStep % notes.length];
+    playSwatTone(note, .12, .022, 'square');
+    if (swatMusicStep % 2 === 0) playSwatTone(note / 2, .09, .018, 'triangle');
+    swatMusicStep += 1;
+  };
+  tick();
+  swatMusicTimer = setInterval(tick, 220);
+}
+
+function stopSwatMusic() {
+  clearInterval(swatMusicTimer);
+  swatMusicTimer = null;
+}
+
+function playSwatHit(hitCount) {
+  const audio = getSwatAudioContext();
+  if (!audio) return;
+  const duration = .075;
+  const buffer = audio.createBuffer(1, Math.ceil(audio.sampleRate * duration), audio.sampleRate);
+  const samples = buffer.getChannelData(0);
+  for (let index = 0; index < samples.length; index += 1) {
+    const decay = 1 - index / samples.length;
+    samples[index] = (Math.random() * 2 - 1) * decay * decay;
+  }
+  const noise = audio.createBufferSource();
+  const filter = audio.createBiquadFilter();
+  const gain = audio.createGain();
+  noise.buffer = buffer;
+  filter.type = 'bandpass';
+  filter.frequency.value = 900;
+  filter.Q.value = .65;
+  gain.gain.setValueAtTime(.11, audio.currentTime);
+  gain.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + duration);
+  noise.connect(filter).connect(gain).connect(audio.destination);
+  noise.start();
+  playSwatTone(175, .1, .075, 'triangle');
+  playSwatTone(580 + (hitCount % 5) * 55, .07, .045, 'square', .018);
+  if (hitCount % 5 === 0) {
+    playSwatTone(660, .14, .055, 'sine', .06);
+    playSwatTone(880, .16, .05, 'sine', .13);
+  }
+}
+
+function playSwatMiss() {
+  playSwatTone(145, .12, .035, 'sawtooth');
+  playSwatTone(112, .16, .03, 'sawtooth', .08);
+}
+
+function playSwatFinish() {
+  [392, 330, 262, 196].forEach((note, index) => playSwatTone(note, .2, .05, 'triangle', index * .1));
+}
+
 const samples = [
   avatar('阿橙', '#ff765d', '😎'), avatar('小蓝', '#61d5ff', '😳'),
   avatar('大黄', '#ffd84d', '🤪'), avatar('桃子', '#ff8eb2', '😂')
@@ -198,6 +287,7 @@ function start() {
   state.finished = false;
   state.score = 0;
   state.onTimeUp = null;
+  if (gameId === 'swat') startSwatMusic();
   $('.single-intro').hidden = true;
   $('#singleResult').hidden = true;
   $('.single-play').hidden = false;
@@ -212,6 +302,7 @@ function start() {
 }
 
 function clean() {
+  stopSwatMusic();
   clearInterval(state.timer);
   clearTimeout(state.launchTimeout);
   clearTimeout(state.resultTimeout);
@@ -258,6 +349,8 @@ function finish(success) {
     feedback.style.background = success ? 'var(--lime)' : 'var(--pink)';
     feedback.classList.add('show');
   } else {
+    stopSwatMusic();
+    playSwatFinish();
     feedback.classList.remove('show');
     resultMessage = `10 秒拍掉 ${state.swatHits || 0} 只，主角也肿了！`;
     $('#swatHudTime').textContent = '时间到！';
@@ -793,14 +886,18 @@ function buildSwat() {
     bug.addEventListener('click', () => {
       if (bug.disabled || state.finished) return;
       bug.disabled = true; count += 1; state.swatHits = count; $('#swatHudHits').textContent = `拍中 ${count} 只 · 漏掉 ${misses}`;
-      showSlap(bug); addDamage(); bug.innerHTML = '<span class="bug-splat"></span>'; bug.classList.add('squashed');
+      showSlap(bug); addDamage(); playSwatHit(count);
+      navigator.vibrate?.(count % 5 === 0 ? [24, 12, 38] : 18);
+      stage.classList.remove('impact-feedback'); void stage.offsetWidth; stage.classList.add('impact-feedback');
+      later(() => stage.classList.remove('impact-feedback'), 180);
+      bug.innerHTML = '<span class="bug-splat"></span>'; bug.classList.add('squashed');
       setScore(count * 20 - misses);
       later(() => { bug.remove(); spawn(); if (count >= 7 && Math.random() < .36) spawn(); }, 280);
     });
     faceWrap.appendChild(bug);
     later(() => {
       if (!bug.disabled && bug.isConnected && !state.finished) {
-        bug.remove(); misses += 1; state.swatMisses = misses; $('#swatHudHits').textContent = `拍中 ${count} 只 · 漏掉 ${misses}`; setScore(count * 20 - misses); spawn();
+        bug.remove(); misses += 1; state.swatMisses = misses; $('#swatHudHits').textContent = `拍中 ${count} 只 · 漏掉 ${misses}`; setScore(count * 20 - misses); playSwatMiss(); spawn();
       }
     }, Math.max(1800, 3300 - count * 34));
   };
