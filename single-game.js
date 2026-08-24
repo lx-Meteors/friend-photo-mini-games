@@ -457,6 +457,7 @@ function finish(success) {
   } else {
     stopSwatMusic();
     playSwatFinish();
+    state.showFinalSwatDamage?.();
     feedback.classList.remove('show');
     resultMessage = `10 秒拍掉 ${state.swatHits || 0} 只，主角也肿了！`;
     $('#swatHudTime').textContent = '时间到！';
@@ -999,6 +1000,7 @@ function buildSwat() {
       context.drawImage(prepared, 0, 0);
     }
   };
+  state.showFinalSwatDamage = () => displayPreparedDamage(config.damageCap);
 
   const prepareDamageStages = () => {
     [0, 5, 10, 15, 20, 25].forEach((stageCount) => {
