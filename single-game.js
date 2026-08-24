@@ -6,7 +6,7 @@ const configs = {
   hold: { duration: 15, command: '忍住！', sub: '按住蓄力，松手会倒退', success: '定力之王！', fail: '功亏一篑！', emoji: '😶' },
   find: { duration: 30, command: '找到他！', sub: '连续找出 10 个目标', success: '人脸雷达！', fail: '眼神飘了！', emoji: '🔎' },
   style: { duration: 15, command: '对上！', sub: '完成四轮离谱变装', success: '造型大师！', fail: '还没穿完！', emoji: '👑' },
-  swat: { duration: 10, damageCap: 25, command: '拍掉！', sub: '10 秒疯狂拍，能拍多少算多少', success: '主角已经认不出来了！', fail: '主角已经认不出来了！', emoji: '🐷' },
+  swat: { duration: 10, damageCap: 25, command: '灭蚊！', sub: '10 秒内消灭尽可能多的蚊子', success: '灭蚊行动完成！', fail: '灭蚊行动完成！', emoji: '🦟' },
   wake: { duration: 15, command: '叫醒！', sub: '连点加速，别让困意反扑', success: '彻底清醒！', fail: '睡得真香！', emoji: '⏰' },
   feed: { duration: 30, command: '喂一口！', sub: '连续投喂，避开黑暗料理', success: '吃播冠军！', fail: '还没吃饱！', emoji: '🥟' },
   snap: { duration: 30, command: '抢拍！', sub: '完成五轮反应抓拍', success: '抓拍大师！', fail: '拍糊啦！', emoji: '📸' },
@@ -459,29 +459,29 @@ function finish(success) {
     playSwatFinish();
     state.showFinalSwatDamage?.();
     feedback.classList.remove('show');
-    resultMessage = `10 秒拍掉 ${state.swatHits || 0} 只，主角也肿了！`;
+    resultMessage = `10 秒消灭 ${state.swatHits || 0} 只，夏天有救了！`;
     $('#swatHudTime').textContent = '时间到！';
     $('#singleStage').querySelectorAll('.bug-target, .slap-fx').forEach((element) => element.remove());
     const warning = $('#singleStage').querySelector('.swat-warning');
     const tip = $('#singleStage').querySelector('.swat-tip');
-    if (warning) warning.textContent = '最终伤情';
-    if (tip) tip.textContent = '停两秒，看看主角被拍成什么样了';
+    if (warning) warning.textContent = '灭蚊成果';
+    if (tip) tip.textContent = '停两秒，看看这次灭蚊成果';
   }
   const finalScore = Math.max(state.score, success ? 100 : 35);
   if (isSwat) {
     const resultFace = $('#swatResultFace');
     const damageCanvas = $('#swatFaceCanvas');
     const roastLines = [
-      '蚊子没事，我有事！',
-      '你到底在拍谁？',
-      '下次请用电蚊拍！',
-      '这巴掌多少带点私人恩怨',
-      '蚊子：谢谢你替我报仇',
-      '脸：我招谁惹谁了？'
+      '今年夏天应该不会被蚊子咬了！',
+      '谢谢你，蚊子都吓跑了！',
+      '这下终于可以安心睡觉了！',
+      '灭蚊很成功，就是动静有点大！',
+      '蚊子清零，今晚睡个好觉！',
+      '手法激烈，灭蚊效果显著！'
     ];
     const roastLine = roastLines[Math.floor(Math.random() * roastLines.length)];
     resultFace.hidden = false;
-    resultFace.innerHTML = `<img src="${damageCanvas ? damageCanvas.toDataURL('image/jpeg', .92) : faces()[0].url}" alt="${faces()[0].name} 的最终伤情"><strong class="swat-roast-bubble">${roastLine}</strong>`;
+    resultFace.innerHTML = `<img src="${damageCanvas ? damageCanvas.toDataURL('image/jpeg', .92) : faces()[0].url}" alt="${faces()[0].name} 的灭蚊成果照"><strong class="swat-roast-bubble">${roastLine}</strong>`;
     $('#swatResultHits').textContent = state.swatHits || 0;
     $('#swatResultMisses').textContent = state.swatMisses || 0;
   }
@@ -491,7 +491,8 @@ function finish(success) {
     $('#singleResult').hidden = false;
     $('#singleResultEmoji').textContent = success ? configs[gameId].emoji : '💥';
     $('#singleResultTitle').textContent = resultMessage;
-    $('#singleResultScore').textContent = isSwat ? `${finalScore}` : `${finalScore} 分`;
+    const resultScore = $('#singleResultScore');
+    if (resultScore) resultScore.textContent = isSwat ? `${finalScore}` : `${finalScore} 分`;
     state.resultTimeout = null;
   }, isSwat ? 2000 : 850);
 }
@@ -643,7 +644,7 @@ function buildStyle() {
 function buildSwat() {
   const stage = $('#singleStage');
   const face = faces()[0];
-  stage.innerHTML = `<div class="swat-scene"><div class="swat-warning">正在生成五档恶搞脸…</div><div id="swatFace" class="swat-face-wrap"><canvas id="swatFaceCanvas" width="420" height="420" role="img" aria-label="${face.name} 正在逐渐鼻青脸肿"></canvas><strong id="faceCondition">目前：毫发无伤</strong></div><div class="swat-tip">盯准蚊子猛拍，别心疼主角</div></div>`;
+  stage.innerHTML = `<div class="swat-scene"><div class="swat-warning">正在准备灭蚊现场…</div><div id="swatFace" class="swat-face-wrap"><canvas id="swatFaceCanvas" width="420" height="420" role="img" aria-label="${face.name} 正在接受灭蚊挑战"></canvas><strong id="faceCondition">蚊子刚刚靠近</strong></div><div class="swat-tip">盯准蚊子猛拍，别拍空了</div></div>`;
   let count = 0, misses = 0;
   state.swatHits = 0; state.swatMisses = 0;
   $('#swatHudHits').textContent = '拍中 0 只 · 漏掉 0';
@@ -1093,7 +1094,7 @@ function buildSwat() {
     displayPreparedDamage(count);
     faceWrap.classList.remove('just-slapped'); void faceWrap.offsetWidth; faceWrap.classList.add('just-slapped');
     faceWrap.dataset.damage = Math.min(5, Math.floor(count / 5));
-    $('#faceCondition').textContent = count < 5 ? '目前：毫发无伤' : count < 10 ? '5掌：掌印盖章' : count < 15 ? '10掌：鼻血警告' : count < 20 ? '15掌：头顶冒烟' : count < 25 ? '20掌：脑袋宕机' : '25掌：眼肿成缝';
+    $('#faceCondition').textContent = count < 5 ? '蚊子刚刚靠近' : count < 10 ? '已消灭 5 只：初战告捷' : count < 15 ? '已消灭 10 只：继续追击' : count < 20 ? '已消灭 15 只：蚊子慌了' : count < 25 ? '已消灭 20 只：即将清场' : '已消灭 25 只：灭蚊成功';
   };
 
   const showSlap = (bug) => {

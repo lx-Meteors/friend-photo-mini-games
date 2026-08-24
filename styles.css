@@ -1333,7 +1333,7 @@ body[data-game="swat"] .swat-roast-bubble::after{
 @keyframes roast-pop{0%{opacity:0;transform:rotate(-5deg) scale(.55)}75%{opacity:1;transform:rotate(1deg) scale(1.08)}100%{opacity:1;transform:rotate(-2deg) scale(1)}}
 body[data-game="swat"] .swat-result-summary{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:0;
   align-items:stretch;
   margin:5px 0 0;
@@ -1358,6 +1358,7 @@ body[data-game="swat"] .swat-result-report span{
   background:transparent;
   transform:none;
 }
+body[data-game="swat"] .swat-result-report span:first-child{background:#fff3ae}
 body[data-game="swat"] .swat-result-stat{background:#fff3ae}
 body[data-game="swat"] .swat-result-stat small,
 body[data-game="swat"] .swat-result-report small{
@@ -1490,7 +1491,7 @@ body[data-game="swat"] .single-result .swat-result-actions .next-victim-button::
   body[data-game="swat"] .single-result{width:97%;padding:7px 8px 8px}
   body[data-game="swat"] .single-result h2{font-size:16px}
   body[data-game="swat"] .swat-result-face{width:100%;max-width:300px;margin-bottom:6px}
-  body[data-game="swat"] .swat-result-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+  body[data-game="swat"] .swat-result-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
   body[data-game="swat"] .swat-result-stat,
   body[data-game="swat"] .swat-result-report span{min-height:38px}
   body[data-game="swat"] .swat-result-stat b{font-size:18px}
