@@ -643,6 +643,8 @@ function buildSwat() {
   const faceWrap = $('#swatFace');
   const context = canvas.getContext('2d', { willReadFrequently: true });
   const sourceImage = new Image();
+  const realisticDamageImage = new Image();
+  let realisticDamageTexture = null;
   const damageVariant = { flip: Math.random() < .5, vertical: (Math.random() - .5) * .035, secondPalm: Math.random() > .28 };
   const faceBounds = face.faceBox || { x: .2, y: .13, width: .6, height: .72 };
   const faceX = (value) => canvas.width * (faceBounds.x + faceBounds.width * (damageVariant.flip ? 1 - value : value));
@@ -664,6 +666,45 @@ function buildSwat() {
     const sourceWidth = size / scale, sourceHeight = size / scale;
     const sourceX = (image.naturalWidth - sourceWidth) / 2, sourceY = (image.naturalHeight - sourceHeight) / 2;
     targetContext.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, size, size);
+  };
+
+  const extractRealisticDamageTexture = (image) => {
+    const texture = document.createElement('canvas');
+    texture.width = image.naturalWidth;
+    texture.height = image.naturalHeight;
+    const textureContext = texture.getContext('2d', { willReadFrequently: true });
+    textureContext.drawImage(image, 0, 0);
+    const pixels = textureContext.getImageData(0, 0, texture.width, texture.height);
+    for (let index = 0; index < pixels.data.length; index += 4) {
+      const red = pixels.data[index], green = pixels.data[index + 1], blue = pixels.data[index + 2];
+      const maximum = Math.max(red, green, blue), minimum = Math.min(red, green, blue);
+      const chroma = maximum - minimum;
+      const average = (red + green + blue) / 3;
+      const colorSignal = Math.max(0, chroma - 6) * 5.2;
+      const shadowSignal = Math.max(0, 224 - average) * 2.1;
+      pixels.data[index + 3] = average > 226 && chroma < 17 ? 0 : clamp(Math.max(colorSignal, shadowSignal), 0, 220);
+    }
+    textureContext.clearRect(0, 0, texture.width, texture.height);
+    textureContext.putImageData(pixels, 0, 0);
+    return texture;
+  };
+
+  const paintRealisticDamageTexture = (leftEye, rightEye, severity) => {
+    if (!realisticDamageTexture) return;
+    const sourceEyeCenterX = realisticDamageTexture.width * .5;
+    const sourceEyeCenterY = realisticDamageTexture.height * .29;
+    const sourceEyeDistance = realisticDamageTexture.width * .39;
+    const destinationEyeDistance = Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y);
+    const scale = destinationEyeDistance / sourceEyeDistance;
+    const angle = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
+    context.save();
+    context.translate((leftEye.x + rightEye.x) / 2, (leftEye.y + rightEye.y) / 2);
+    context.rotate(angle);
+    context.scale(scale, scale);
+    context.globalCompositeOperation = 'multiply';
+    context.globalAlpha = .2 + severity * .34;
+    context.drawImage(realisticDamageTexture, -sourceEyeCenterX, -sourceEyeCenterY);
+    context.restore();
   };
 
   const bulgePixels = (imageData, centerX, centerY, radius, strength) => {
@@ -743,10 +784,10 @@ function buildSwat() {
   };
 
   const paintPalmPrint = (x, y, scale, rotation, alpha) => {
-    context.save(); context.translate(x, y); context.rotate(rotation); context.scale(scale, scale); context.filter = 'blur(.7px)'; context.globalCompositeOperation = 'multiply';
-    context.fillStyle = `rgba(229,45,58,${alpha})`; context.beginPath(); context.ellipse(0, 12, 29, 35, 0, 0, Math.PI * 2); context.fill();
+    context.save(); context.translate(x, y); context.rotate(rotation); context.scale(scale, scale); context.filter = 'blur(1.2px)'; context.globalCompositeOperation = 'multiply';
+    context.fillStyle = `rgba(124,18,42,${alpha})`; context.beginPath(); context.ellipse(0, 12, 29, 35, 0, 0, Math.PI * 2); context.fill();
     context.lineWidth = 13; context.lineCap = 'round';
-    [[-23,-8,-35,-48],[-10,-17,-15,-61],[3,-19,4,-66],[16,-14,23,-58],[26,-4,39,-42]].forEach(([x1,y1,x2,y2]) => { context.beginPath(); context.moveTo(x1,y1); context.lineTo(x2,y2); context.strokeStyle = `rgba(229,45,58,${alpha * .92})`; context.stroke(); });
+    [[-23,-8,-35,-48],[-10,-17,-15,-61],[3,-19,4,-66],[16,-14,23,-58],[26,-4,39,-42]].forEach(([x1,y1,x2,y2]) => { context.beginPath(); context.moveTo(x1,y1); context.lineTo(x2,y2); context.strokeStyle = `rgba(124,18,42,${alpha * .9})`; context.stroke(); });
     context.restore();
   };
 
@@ -823,8 +864,8 @@ function buildSwat() {
   };
 
   const paintSwollenShutEye = (x, y, rotation, severity) => {
-    const radiusX = faceWidth() * (.145 + severity * .012);
-    const radiusY = faceHeight() * (.047 + severity * .008);
+    const radiusX = faceWidth() * (.135 + severity * .012);
+    const radiusY = faceHeight() * (.052 + severity * .012);
     const sampleX = Math.round(clamp(x, 0, canvas.width - 1));
     const sampleY = Math.round(clamp(y + faceHeight() * .075, 0, canvas.height - 1));
     const skin = context.getImageData(sampleX, sampleY, 1, 1).data;
@@ -837,21 +878,21 @@ function buildSwat() {
     context.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
     context.fill();
     const swelling = context.createRadialGradient(0, -radiusY * .3, radiusY * .12, 0, 0, radiusX);
-    swelling.addColorStop(0, 'rgba(255,218,174,.42)');
-    swelling.addColorStop(.58, 'rgba(236,132,104,.18)');
-    swelling.addColorStop(1, 'rgba(180,94,75,0)');
-    context.globalCompositeOperation = 'soft-light';
+    swelling.addColorStop(0, 'rgba(242,151,153,.3)');
+    swelling.addColorStop(.55, 'rgba(126,55,80,.34)');
+    swelling.addColorStop(1, 'rgba(71,29,60,0)');
+    context.globalCompositeOperation = 'multiply';
     context.fillStyle = swelling;
     context.beginPath();
     context.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
     context.fill();
     context.filter = 'none';
-    context.strokeStyle = 'rgba(65,40,32,.9)';
+    context.strokeStyle = 'rgba(48,25,39,.82)';
     context.lineWidth = clamp(faceWidth() * .016, 3, 6);
     context.lineCap = 'round';
     context.beginPath();
     context.moveTo(-radiusX * .72, 0);
-    context.quadraticCurveTo(0, radiusY * .62, radiusX * .72, 0);
+    context.quadraticCurveTo(0, radiusY * .34, radiusX * .72, 0);
     context.stroke();
     context.strokeStyle = 'rgba(255,203,196,.46)';
     context.lineWidth = Math.max(1.5, faceWidth() * .006);
@@ -892,29 +933,40 @@ function buildSwat() {
 
   const paintNosebleed = (primaryNostril, secondaryNostril, width, height, severity) => {
     const direction = primaryNostril.x < secondaryNostril.x ? -1 : 1;
-    const streamLength = height * (.055 + severity * .035);
+    const streamLength = height * (.12 + severity * .1);
     const startX = primaryNostril.x;
     const startY = primaryNostril.y + height * .008;
     context.save();
-    context.globalCompositeOperation = 'source-over';
+    context.globalCompositeOperation = 'multiply';
     context.lineCap = 'round';
     context.lineJoin = 'round';
-    context.strokeStyle = `rgba(204,20,39,${.8 + severity * .15})`;
-    context.lineWidth = clamp(width * .016, 3, 5.5);
+    context.filter = 'blur(.45px)';
+    context.strokeStyle = `rgba(92,4,15,${.72 + severity * .2})`;
+    context.lineWidth = clamp(width * .022, 3.5, 7);
     context.beginPath();
     context.moveTo(startX, startY);
     context.bezierCurveTo(startX + direction * width * .018, startY + streamLength * .28, startX - direction * width * .012, startY + streamLength * .62, startX + direction * width * .025, startY + streamLength);
     context.stroke();
-    context.strokeStyle = `rgba(255,92,86,${.62 + severity * .2})`;
+    context.strokeStyle = `rgba(224,32,39,${.55 + severity * .25})`;
     context.lineWidth = clamp(width * .008, 1.5, 3);
     context.beginPath();
     context.moveTo(startX - direction * 1.5, startY + 2);
     context.bezierCurveTo(startX + direction * width * .01, startY + streamLength * .34, startX - direction * width * .018, startY + streamLength * .66, startX + direction * width * .02, startY + streamLength * .94);
     context.stroke();
-    context.fillStyle = `rgba(215,22,42,${.8 + severity * .15})`;
+    context.fillStyle = `rgba(104,3,16,${.72 + severity * .2})`;
     context.beginPath();
     context.ellipse(startX + direction * width * .025, startY + streamLength, width * .026, height * .018, direction * .2, 0, Math.PI * 2);
     context.fill();
+    if (severity > .78) {
+      const secondX = secondaryNostril.x;
+      const secondY = secondaryNostril.y + height * .008;
+      context.strokeStyle = `rgba(111,5,18,${severity * .72})`;
+      context.lineWidth = clamp(width * .014, 2.5, 5);
+      context.beginPath();
+      context.moveTo(secondX, secondY);
+      context.bezierCurveTo(secondX - direction * width * .01, secondY + streamLength * .3, secondX + direction * width * .015, secondY + streamLength * .52, secondX, secondY + streamLength * .72);
+      context.stroke();
+    }
     context.restore();
   };
 
@@ -954,14 +1006,14 @@ function buildSwat() {
 
     context.save(); context.globalCompositeOperation = 'multiply'; context.filter = 'blur(7px)';
     const leftRed = context.createRadialGradient(mainCheekX,mainCheekY,4,mainCheekX,mainCheekY,faceWidth()*.38);
-    leftRed.addColorStop(0,`rgba(242,63,70,${.12 + severity * .13})`); leftRed.addColorStop(1,'rgba(240,70,75,0)'); context.fillStyle=leftRed; context.fillRect(0,0,size,size);
-    if (damageCount >= 10) { const rightRed=context.createRadialGradient(otherCheekX,otherCheekY,4,otherCheekX,otherCheekY,faceWidth()*.37); rightRed.addColorStop(0,`rgba(242,63,70,${.11 + severity*.12})`); rightRed.addColorStop(1,'rgba(240,70,75,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
+    leftRed.addColorStop(0,`rgba(224,38,55,${.22 + severity * .25})`); leftRed.addColorStop(1,'rgba(218,45,58,0)'); context.fillStyle=leftRed; context.fillRect(0,0,size,size);
+    if (damageCount >= 10) { const rightRed=context.createRadialGradient(otherCheekX,otherCheekY,4,otherCheekX,otherCheekY,faceWidth()*.37); rightRed.addColorStop(0,`rgba(220,33,54,${.2 + severity*.22})`); rightRed.addColorStop(1,'rgba(204,37,57,0)'); context.fillStyle=rightRed; context.fillRect(0,0,size,size); }
     context.restore();
 
     paintSwelling(mainCheekX, mainCheekY, faceWidth() * .42, faceHeight() * .3, Math.min(1, .35 + severity));
     if (damageCount >= 10) paintSwelling(otherCheekX, otherCheekY, faceWidth() * .4, faceHeight() * .29, Math.min(1, .2 + severity));
-    const palmAlpha = damageCount >= 15 ? .34 : Math.min(.44, .22 + severity * .22);
-    const secondPalmAlpha = damageCount >= 15 ? .3 : Math.min(.38, .18 + severity * .2);
+    const palmAlpha = damageCount >= 15 ? .2 : Math.min(.44, .22 + severity * .22);
+    const secondPalmAlpha = damageCount >= 15 ? .17 : Math.min(.38, .18 + severity * .2);
     paintPalmPrint(faceX(.24), faceY(.65 + damageVariant.vertical), clamp(faceWidth() / 300, .56, .82), damageVariant.flip ? .2 : -.2, palmAlpha);
     if (damageCount >= 10) paintPalmPrint(faceX(.73), faceY(.61 - damageVariant.vertical), clamp(faceWidth() / 330, .5, .72), damageVariant.flip ? -.16 : .16, secondPalmAlpha);
     const leftEye = canvasPoint(eyePoints.left);
@@ -971,19 +1023,19 @@ function buildSwat() {
       paintSwollenShutEye(leftEye.x, leftEye.y, eyeLineAngle, severity);
       paintSwollenShutEye(rightEye.x, rightEye.y, eyeLineAngle, severity);
     }
-    if (damageCount < 20) {
-      paintBruise(leftEye.x, leftEye.y, faceWidth() * .2, faceHeight() * .09, Math.min(.28, .08 + severity * .16));
-      if (damageCount >= 10) paintBruise(rightEye.x, rightEye.y, faceWidth() * .19, faceHeight() * .09, Math.min(.24, .06 + severity * .14));
-    } else {
-      paintComicMouth(faceX(.5), faceY(.75), severity);
-    }
+    paintBruise(leftEye.x, leftEye.y, faceWidth() * .24, faceHeight() * .12, Math.min(.72, .22 + severity * .52));
+    if (damageCount >= 10) paintBruise(rightEye.x, rightEye.y, faceWidth() * .22, faceHeight() * .11, Math.min(.65, .16 + severity * .46));
+    if (damageCount >= 15) paintBruise(faceX(.5), faceY(.54), faceWidth() * .13, faceHeight() * .1, Math.min(.42, .12 + severity * .32));
+    if (damageCount >= 15) paintRealisticDamageTexture(leftEye, rightEye, severity);
     const leftNostril = canvasPoint(nostrilPoints.left);
     const rightNostril = canvasPoint(nostrilPoints.right);
     if (damageCount >= 10) {
       paintNosebleed(damageVariant.flip ? rightNostril : leftNostril, damageVariant.flip ? leftNostril : rightNostril, faceWidth(), faceHeight(), severity);
     }
     if (damageCount >= 20) {
-      context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.2)'; context.beginPath(); context.ellipse((leftEye.x + rightEye.x) / 2,(leftEye.y + rightEye.y) / 2,faceWidth()*.36,faceHeight()*.17,eyeLineAngle,0,Math.PI*2); context.fill(); context.restore();
+      paintBruise(leftEye.x, leftEye.y, faceWidth() * .25, faceHeight() * .12, .52);
+      paintBruise(rightEye.x, rightEye.y, faceWidth() * .24, faceHeight() * .12, .48);
+      context.save(); context.globalCompositeOperation='screen'; context.filter='blur(5px)'; context.fillStyle='rgba(255,215,82,.24)'; context.beginPath(); context.ellipse((leftEye.x + rightEye.x) / 2,(leftEye.y + rightEye.y) / 2,faceWidth()*.36,faceHeight()*.18,eyeLineAngle,0,Math.PI*2); context.fill(); context.restore();
     }
     if (damageCount >= 25) {
       paintComicStar(faceX(.08), faceY(.17), faceWidth() * .12, -.2, '#ffe23e');
@@ -1014,7 +1066,18 @@ function buildSwat() {
     $('.swat-warning').textContent = '蚊子围攻中';
     spawn(); spawn(); spawn();
   };
-  sourceImage.addEventListener('load', prepareDamageStages, { once: true });
+  const realisticDamageReady = new Promise((resolve) => {
+    realisticDamageImage.addEventListener('load', () => {
+      realisticDamageTexture = extractRealisticDamageTexture(realisticDamageImage);
+      resolve();
+    }, { once: true });
+    realisticDamageImage.addEventListener('error', resolve, { once: true });
+  });
+  realisticDamageImage.src = 'assets/realistic-damage-mask-source.png?v=1';
+  sourceImage.addEventListener('load', async () => {
+    await realisticDamageReady;
+    prepareDamageStages();
+  }, { once: true });
   sourceImage.src = face.url;
 
   const addDamage = () => {
