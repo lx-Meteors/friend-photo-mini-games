@@ -475,9 +475,7 @@ function finish(success) {
       '今年夏天应该不会被蚊子咬了！',
       '谢谢你，蚊子都吓跑了！',
       '这下终于可以安心睡觉了！',
-      '灭蚊很成功，就是动静有点大！',
-      '蚊子清零，今晚睡个好觉！',
-      '手法激烈，灭蚊效果显著！'
+      '蚊子清零，今晚睡个好觉！'
     ];
     const roastLine = roastLines[Math.floor(Math.random() * roastLines.length)];
     resultFace.hidden = false;
