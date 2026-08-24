@@ -471,8 +471,17 @@ function finish(success) {
   if (isSwat) {
     const resultFace = $('#swatResultFace');
     const damageCanvas = $('#swatFaceCanvas');
+    const roastLines = [
+      '蚊子没事，我有事！',
+      '你到底在拍谁？',
+      '下次请用电蚊拍！',
+      '这巴掌多少带点私人恩怨',
+      '蚊子：谢谢你替我报仇',
+      '脸：我招谁惹谁了？'
+    ];
+    const roastLine = roastLines[Math.floor(Math.random() * roastLines.length)];
     resultFace.hidden = false;
-    resultFace.innerHTML = `<img src="${damageCanvas ? damageCanvas.toDataURL('image/jpeg', .92) : faces()[0].url}" alt="${faces()[0].name} 的最终伤情">`;
+    resultFace.innerHTML = `<img src="${damageCanvas ? damageCanvas.toDataURL('image/jpeg', .92) : faces()[0].url}" alt="${faces()[0].name} 的最终伤情"><strong class="swat-roast-bubble">${roastLine}</strong>`;
     $('#swatResultHits').textContent = state.swatHits || 0;
     $('#swatResultMisses').textContent = state.swatMisses || 0;
   }
