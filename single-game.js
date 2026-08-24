@@ -725,6 +725,25 @@ function buildSwat() {
     }
   };
 
+  const widenLowerFacePixels = (imageData, centerX, centerY, radiusX, radiusY, strengthX, strengthY) => {
+    const { width, height, data } = imageData;
+    const source = new Uint8ClampedArray(data);
+    const minX = Math.max(0, Math.floor(centerX - radiusX)), maxX = Math.min(width - 1, Math.ceil(centerX + radiusX));
+    const minY = Math.max(0, Math.floor(centerY - radiusY)), maxY = Math.min(height - 1, Math.ceil(centerY + radiusY));
+    for (let y = minY; y <= maxY; y += 1) {
+      for (let x = minX; x <= maxX; x += 1) {
+        const dx = x - centerX, dy = y - centerY;
+        const distance = Math.sqrt((dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY));
+        if (distance >= 1) continue;
+        const falloff = (1 - distance) ** 2;
+        const sampleX = Math.round(clamp(centerX + dx * (1 - strengthX * falloff), 0, width - 1));
+        const sampleY = Math.round(clamp(centerY + dy * (1 - strengthY * falloff), 0, height - 1));
+        const from = (sampleY * width + sampleX) * 4, to = (y * width + x) * 4;
+        data[to] = source[from]; data[to + 1] = source[from + 1]; data[to + 2] = source[from + 2]; data[to + 3] = source[from + 3];
+      }
+    }
+  };
+
   const paintBruise = (x, y, radiusX, radiusY, alpha) => {
     context.save();
     context.translate(x, y);
@@ -932,9 +951,20 @@ function buildSwat() {
     const pixels = context.getImageData(0, 0, size, size);
     const mainCheekX = faceX(.29), mainCheekY = faceY(.64 + damageVariant.vertical);
     const otherCheekX = faceX(.71), otherCheekY = faceY(.62 - damageVariant.vertical);
+    if (damageCount >= 20) {
+      widenLowerFacePixels(
+        pixels,
+        faceX(.5),
+        faceY(.64),
+        faceWidth() * .53,
+        faceHeight() * .39,
+        damageCount >= 25 ? .3 : .16,
+        damageCount >= 25 ? .1 : .05
+      );
+    }
     if (damageCount >= 25) {
-      bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * .36, .42);
-      bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * .35, .4);
+      bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * .37, .48);
+      bulgePixels(pixels, otherCheekX, otherCheekY, faceWidth() * .37, .46);
       bulgePixels(pixels, faceX(.5), faceY(.75), faceWidth() * .27, .25);
     }
     bulgePixels(pixels, mainCheekX, mainCheekY, faceWidth() * (.37 + stage * .008), .12 + severity * .2);
