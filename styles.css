@@ -1288,27 +1288,34 @@ body[data-game="swat"] .swat-result-face>img{object-fit:contain}
 body[data-game="swat"] .swat-result-summary{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:5px;
+  gap:0;
   align-items:stretch;
-  margin-top:4px;
+  margin:5px 0 0;
+  overflow:hidden;
+  border:3px solid var(--ink);
+  border-radius:12px;
+  box-shadow:4px 4px 0 var(--ink);
+  background:white;
 }
 body[data-game="swat"] .swat-result-stat,
 body[data-game="swat"] .swat-result-report span{
-  display:grid;
-  place-items:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
   min-width:0;
-  min-height:48px;
-  padding:3px 2px;
-  border:3px solid var(--ink);
-  border-radius:9px;
-  box-shadow:3px 3px 0 var(--ink);
-  background:white;
-  transform:rotate(-.5deg);
+  min-height:40px;
+  padding:4px 3px;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+  background:transparent;
+  transform:none;
 }
-body[data-game="swat"] .swat-result-stat{background:var(--yellow)}
+body[data-game="swat"] .swat-result-stat{background:#fff3ae}
 body[data-game="swat"] .swat-result-stat small,
 body[data-game="swat"] .swat-result-report small{
-  display:block;
+  display:inline;
   font-size:7px;
   font-weight:950;
   line-height:1;
@@ -1316,7 +1323,7 @@ body[data-game="swat"] .swat-result-report small{
 }
 body[data-game="swat"] .swat-result-stat b,
 body[data-game="swat"] .swat-result-report b{
-  display:block;
+  display:inline;
   margin:0;
   color:var(--ink);
   font:950 18px/.9 Impact,"Arial Black",sans-serif;
@@ -1333,30 +1340,31 @@ body[data-game="swat"] .swat-result-report{
 }
 body[data-game="swat"] .swat-result-report span{
   font-size:7px;
-  transform:rotate(.5deg);
+  border-left:2px solid var(--ink);
+  transform:none;
 }
 body[data-game="swat"] .swat-result-report span:last-child{
-  background:var(--blue);
-  transform:rotate(-.5deg);
+  background:#d9f6ff;
+  transform:none;
 }
 body[data-game="swat"] .swat-result-actions{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:5px;
-  margin-top:7px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin-top:9px;
 }
 body[data-game="swat"] .single-result .swat-result-actions .primary-button,
 body[data-game="swat"] .single-result .swat-result-actions .next-victim-button,
 body[data-game="swat"] .single-result .swat-result-actions .download-result-button{
   width:100%;
-  min-height:39px;
-  height:39px;
+  min-height:42px;
+  height:42px;
   margin:0;
   padding:4px 2px;
   border:3px solid var(--ink);
-  border-radius:10px;
+  border-radius:13px;
   box-shadow:4px 4px 0 var(--ink);
-  font-size:10px;
+  font-size:11px;
   font-weight:950;
   line-height:1;
   letter-spacing:-.04em;
@@ -1436,12 +1444,12 @@ body[data-game="swat"] .single-result .swat-result-actions .next-victim-button::
   body[data-game="swat"] .single-result{width:97%;padding:7px 8px 8px}
   body[data-game="swat"] .single-result h2{font-size:16px}
   body[data-game="swat"] .swat-result-face{width:100%;max-width:300px;margin-bottom:6px}
-  body[data-game="swat"] .swat-result-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  body[data-game="swat"] .swat-result-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
   body[data-game="swat"] .swat-result-stat,
-  body[data-game="swat"] .swat-result-report span{min-height:44px}
-  body[data-game="swat"] .swat-result-stat b{font-size:20px}
-  body[data-game="swat"] .swat-result-actions{gap:5px;margin-top:6px}
+  body[data-game="swat"] .swat-result-report span{min-height:38px}
+  body[data-game="swat"] .swat-result-stat b{font-size:18px}
+  body[data-game="swat"] .swat-result-actions{gap:7px;margin-top:8px}
   body[data-game="swat"] .single-result .swat-result-actions .primary-button,
   body[data-game="swat"] .single-result .swat-result-actions .next-victim-button,
-  body[data-game="swat"] .single-result .swat-result-actions .download-result-button{height:36px;min-height:36px;font-size:9px}
+  body[data-game="swat"] .single-result .swat-result-actions .download-result-button{height:39px;min-height:39px;font-size:10px}
 }

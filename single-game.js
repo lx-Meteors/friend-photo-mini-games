@@ -381,7 +381,7 @@ if (downloadResultButton) {
 }
 
 $('#singleStart').addEventListener('click', start);
-$('#singleAgain').addEventListener('click', start);
+$('#singleAgain')?.addEventListener('click', start);
 $('#singleRestart').addEventListener('click', start);
 
 function start() {
