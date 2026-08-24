@@ -1314,8 +1314,8 @@ body[data-game="swat"] .swat-result-report span{
 }
 body[data-game="swat"] .swat-result-actions{
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:7px;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:5px;
   margin-top:7px;
 }
 body[data-game="swat"] .single-result .swat-result-actions .primary-button,
@@ -1328,10 +1328,63 @@ body[data-game="swat"] .single-result .swat-result-actions .download-result-butt
   font-size:11px;
 }
 body[data-game="swat"] .single-result .swat-result-actions .download-result-button{
-  grid-column:1/-1;
   color:var(--ink);
   background:var(--blue);
   box-shadow:4px 4px 0 var(--ink);
+}
+
+.download-preview-modal{
+  position:fixed;
+  z-index:9999;
+  inset:0;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:#17131fd9;
+}
+.download-preview-card{
+  position:relative;
+  width:min(92vw,430px);
+  padding:14px;
+  border:4px solid var(--ink);
+  border-radius:18px;
+  background:#fff7cd;
+  box-shadow:8px 9px 0 #ff6cad;
+  text-align:center;
+}
+.download-preview-card>button{
+  position:absolute;
+  z-index:2;
+  top:6px;
+  right:7px;
+  width:32px;
+  height:32px;
+  border:3px solid var(--ink);
+  border-radius:50%;
+  background:var(--yellow);
+  font-size:22px;
+  font-weight:900;
+  line-height:22px;
+}
+.download-preview-card>strong,
+.download-preview-card>span{
+  display:block;
+  padding:0 30px;
+}
+.download-preview-card>strong{font-size:20px}
+.download-preview-card>span{
+  margin:4px 0 10px;
+  font-size:12px;
+  font-weight:800;
+}
+.download-preview-card>img{
+  display:block;
+  width:100%;
+  max-height:70vh;
+  border:4px solid var(--ink);
+  border-radius:12px;
+  object-fit:contain;
+  background:white;
 }
 
 @media(max-width:380px){
