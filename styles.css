@@ -1287,30 +1287,57 @@ body[data-game="swat"] .swat-result-face{
 body[data-game="swat"] .swat-result-face>img{object-fit:contain}
 body[data-game="swat"] .swat-result-summary{
   display:grid;
-  grid-template-columns:76px minmax(0,1fr);
-  gap:7px;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:5px;
   align-items:stretch;
   margin-top:4px;
 }
-body[data-game="swat"] .swat-result-summary>#singleResultScore{
-  display:grid;
-  place-items:center;
-  color:var(--orange);
-  background:white;
-  border:3px solid var(--ink);
-  font:900 24px/1 Impact,sans-serif;
-  text-shadow:1px 1px 0 var(--ink);
-}
-body[data-game="swat"] .swat-result-report{
-  grid-template-columns:repeat(2,1fr);
-  gap:3px;
-  margin:0;
-}
+body[data-game="swat"] .swat-result-stat,
 body[data-game="swat"] .swat-result-report span{
   display:grid;
   place-items:center;
-  padding:2px 1px;
+  min-width:0;
+  min-height:48px;
+  padding:3px 2px;
+  border:3px solid var(--ink);
+  border-radius:9px;
+  box-shadow:3px 3px 0 var(--ink);
+  background:white;
+  transform:rotate(-.5deg);
+}
+body[data-game="swat"] .swat-result-stat{background:var(--yellow)}
+body[data-game="swat"] .swat-result-stat small,
+body[data-game="swat"] .swat-result-report small{
+  display:block;
   font-size:7px;
+  font-weight:950;
+  line-height:1;
+  white-space:nowrap;
+}
+body[data-game="swat"] .swat-result-stat b,
+body[data-game="swat"] .swat-result-report b{
+  display:block;
+  margin:0;
+  color:var(--ink);
+  font:950 18px/.9 Impact,"Arial Black",sans-serif;
+  text-shadow:none;
+}
+body[data-game="swat"] .swat-result-stat b{
+  color:var(--orange);
+  font-size:22px;
+  text-shadow:1px 1px 0 var(--ink);
+}
+body[data-game="swat"] .swat-result-report{
+  display:contents;
+  margin:0;
+}
+body[data-game="swat"] .swat-result-report span{
+  font-size:7px;
+  transform:rotate(.5deg);
+}
+body[data-game="swat"] .swat-result-report span:last-child{
+  background:var(--blue);
+  transform:rotate(-.5deg);
 }
 body[data-game="swat"] .swat-result-actions{
   display:grid;
@@ -1322,16 +1349,34 @@ body[data-game="swat"] .single-result .swat-result-actions .primary-button,
 body[data-game="swat"] .single-result .swat-result-actions .next-victim-button,
 body[data-game="swat"] .single-result .swat-result-actions .download-result-button{
   width:100%;
-  min-height:34px;
+  min-height:39px;
+  height:39px;
   margin:0;
-  padding:5px 4px;
-  font-size:11px;
+  padding:4px 2px;
+  border:3px solid var(--ink);
+  border-radius:10px;
+  box-shadow:4px 4px 0 var(--ink);
+  font-size:10px;
+  font-weight:950;
+  line-height:1;
+  letter-spacing:-.04em;
+  white-space:nowrap;
+  transform:none;
 }
 body[data-game="swat"] .single-result .swat-result-actions .download-result-button{
   color:var(--ink);
   background:var(--blue);
   box-shadow:4px 4px 0 var(--ink);
 }
+body[data-game="swat"] .single-result .swat-result-actions .primary-button{
+  color:white;
+  background:var(--ink);
+}
+body[data-game="swat"] .single-result .swat-result-actions .next-victim-button{
+  color:var(--ink);
+  background:var(--yellow);
+}
+body[data-game="swat"] .single-result .swat-result-actions .next-victim-button::before{display:none}
 
 .download-preview-modal{
   position:fixed;
@@ -1391,7 +1436,12 @@ body[data-game="swat"] .single-result .swat-result-actions .download-result-butt
   body[data-game="swat"] .single-result{width:97%;padding:7px 8px 8px}
   body[data-game="swat"] .single-result h2{font-size:16px}
   body[data-game="swat"] .swat-result-face{width:100%;max-width:300px;margin-bottom:6px}
-  body[data-game="swat"] .swat-result-summary{grid-template-columns:68px minmax(0,1fr);gap:5px}
-  body[data-game="swat"] .swat-result-summary>#singleResultScore{font-size:21px}
+  body[data-game="swat"] .swat-result-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  body[data-game="swat"] .swat-result-stat,
+  body[data-game="swat"] .swat-result-report span{min-height:44px}
+  body[data-game="swat"] .swat-result-stat b{font-size:20px}
   body[data-game="swat"] .swat-result-actions{gap:5px;margin-top:6px}
+  body[data-game="swat"] .single-result .swat-result-actions .primary-button,
+  body[data-game="swat"] .single-result .swat-result-actions .next-victim-button,
+  body[data-game="swat"] .single-result .swat-result-actions .download-result-button{height:36px;min-height:36px;font-size:9px}
 }

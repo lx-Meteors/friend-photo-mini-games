@@ -481,7 +481,7 @@ function finish(success) {
     $('#singleResult').hidden = false;
     $('#singleResultEmoji').textContent = success ? configs[gameId].emoji : '💥';
     $('#singleResultTitle').textContent = resultMessage;
-    $('#singleResultScore').textContent = `${finalScore} 分`;
+    $('#singleResultScore').textContent = isSwat ? `${finalScore}` : `${finalScore} 分`;
     state.resultTimeout = null;
   }, isSwat ? 2000 : 850);
 }
