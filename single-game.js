@@ -161,11 +161,19 @@ function avatar(name, color, emoji) {
   return { name, url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, sample: true };
 }
 
-function faces() { return state.faces.length ? state.faces : samples; }
+function faces() {
+  if (gameId === 'swat') return state.faces;
+  return state.faces.length ? state.faces : samples;
+}
 
 function renderPreview() {
   const limit = gameId === 'find' ? 4 : 1;
-  $('#singlePreview').innerHTML = faces().slice(0, limit).map((face) => `<img src="${face.url}" alt="${face.name}">`).join('');
+  const preview = $('#singlePreview');
+  if (gameId === 'swat' && !state.faces.length) {
+    preview.innerHTML = '<div class="swat-photo-placeholder" aria-hidden="true"><span>＋</span><b>人物照片</b></div>';
+    return;
+  }
+  preview.innerHTML = faces().slice(0, limit).map((face) => `<img src="${face.url}" alt="${face.name}">`).join('');
 }
 
 let faceModelPromise = null;
@@ -292,26 +300,29 @@ $('#singlePhotoInput').addEventListener('change', async (event) => {
   renderPreview();
   if (gameId !== 'swat' || !state.faces.length) return;
 
-  const uploadLabel = document.querySelector('label[for="singlePhotoInput"]');
+  const uploadStatus = $('#singleUploadStatus');
   const startButton = $('#singleStart');
-  uploadLabel.textContent = '正在识别人脸并自动居中…';
-  uploadLabel.classList.remove('face-found', 'face-missed');
-  uploadLabel.classList.add('detecting');
+  uploadStatus.textContent = '正在识别人脸并自动居中…';
+  uploadStatus.classList.remove('face-found', 'face-missed');
+  uploadStatus.classList.add('detecting');
   startButton.disabled = true;
+  let shouldStart = false;
   try {
     state.faces = await Promise.all(state.faces.map(autoCenterFace));
     renderPreview();
-    uploadLabel.textContent = state.faces[0].detected ? '✓ 已识别人脸并自动居中' : '未识别人脸，请换一张清晰正脸照';
-    uploadLabel.classList.toggle('face-found', state.faces[0].detected);
-    uploadLabel.classList.toggle('face-missed', !state.faces[0].detected);
+    shouldStart = Boolean(state.faces[0]?.detected);
+    uploadStatus.textContent = shouldStart ? '✓ 已识别人脸，正在开始灭蚊…' : '未识别到人脸，请重新选择一张清晰正脸照';
+    uploadStatus.classList.toggle('face-found', shouldStart);
+    uploadStatus.classList.toggle('face-missed', !shouldStart);
   } catch (error) {
     console.warn('Photo processing fallback:', error);
-    uploadLabel.textContent = '识别失败，请重新选择照片';
-    uploadLabel.classList.add('face-missed');
+    uploadStatus.textContent = '识别失败，请重新选择照片';
+    uploadStatus.classList.add('face-missed');
   } finally {
-    uploadLabel.classList.remove('detecting');
-    startButton.disabled = !state.faces[0]?.detected;
+    uploadStatus.classList.remove('detecting');
+    startButton.disabled = false;
   }
+  if (shouldStart) start();
 });
 
 const nextVictimButton = $('#singleNextVictim');
@@ -380,7 +391,15 @@ if (downloadResultButton) {
   });
 }
 
-$('#singleStart').addEventListener('click', start);
+$('#singleStart').addEventListener('click', () => {
+  if (gameId !== 'swat') {
+    start();
+    return;
+  }
+  const photoInput = $('#singlePhotoInput');
+  photoInput.value = '';
+  photoInput.click();
+});
 $('#singleAgain')?.addEventListener('click', start);
 $('#singleRestart').addEventListener('click', start);
 

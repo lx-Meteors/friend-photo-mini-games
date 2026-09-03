@@ -32,14 +32,14 @@
       <div class="single-intro">
         <h1><span>别动！</span>脸上有蚊子</h1>
         <div class="swat-cover-stage">
-          <span>本 场 主 角</span>
+          <span>等待主角入场</span>
           <div id="singlePreview" class="single-preview"></div>
           <img src="assets/mosquito-real.png" alt="" aria-hidden="true">
-          <i>已被蚊子锁定</i>
+          <i>上传照片后开始灭蚊</i>
         </div>
-        <label class="mini-upload" for="singlePhotoInput">＋ 上传人物照片当主角</label>
         <input id="singlePhotoInput" type="file" accept="image/*" hidden>
-        <button id="singleStart" class="primary-button" type="button"><b>READY?</b> 开拍！瞄准蚊子 <span>→</span></button>
+        <p id="singleUploadStatus" class="single-upload-status" aria-live="polite">上传一张清晰正脸照，即可开始灭蚊</p>
+        <button id="singleStart" class="primary-button" type="button">上传人物照片开拍！ <span>→</span></button>
       </div>
       <div class="single-play" hidden>
         <div class="single-hud swat-hud">

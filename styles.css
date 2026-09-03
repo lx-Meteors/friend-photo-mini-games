@@ -886,8 +886,13 @@ body[data-game="swat"] .single-intro h1{margin:0 0 10px;color:#76ba19;font-size:
 .swat-cover-stage>.single-preview{z-index:2;min-height:0}
 .swat-cover-stage .single-preview::before{display:none}
 .swat-cover-stage .single-preview img{width:104px;height:104px;margin:0;border:6px solid white;outline:3px solid var(--ink);border-radius:50%;box-shadow:5px 6px 0 var(--ink)}
+.swat-photo-placeholder{width:104px;height:104px;display:grid;place-content:center;gap:2px;border:4px dashed var(--ink);border-radius:50%;color:var(--ink);background:#fff8d9;text-align:center;box-shadow:5px 6px 0 var(--ink)}
+.swat-photo-placeholder span{font-size:38px;line-height:.7}.swat-photo-placeholder b{font-size:9px;letter-spacing:.05em}
 .swat-cover-stage>img{position:absolute;z-index:3;right:-28px;top:16px;width:92px;height:92px;object-fit:contain;filter:contrast(1.15) drop-shadow(3px 4px 1px white) drop-shadow(4px 5px 2px #17131faa);transform:rotate(-18deg)}
 .swat-cover-stage>i{position:absolute;z-index:4;right:-9px;bottom:5px;padding:4px 7px;border:2px solid var(--ink);color:var(--ink);background:var(--yellow);font-size:8px;font-style:normal;font-weight:950;transform:rotate(5deg)}
+.single-upload-status{width:88%;min-height:16px;margin:10px 0 0;color:#5e5664;font-size:9px;font-weight:900;text-align:center}
+.single-upload-status.detecting{color:#5e5664;animation:face-scan 1s ease-in-out infinite alternate}
+.single-upload-status.face-found{color:#13783d}.single-upload-status.face-missed{color:#a52424}
 body[data-game="swat"] .mini-upload{width:78%;margin:13px 0 0;padding:7px 10px;border:3px solid var(--ink);border-radius:3px;background:white;box-shadow:3px 4px 0 var(--pink);font-size:10px}
 body[data-game="swat"] .single-intro .primary-button{position:relative;width:88%;min-height:46px;margin-top:12px;padding-inline:14px;border-width:4px;border-radius:3px 11px 4px 8px;background:var(--orange);box-shadow:6px 7px 0 var(--ink);font-size:16px;letter-spacing:.06em}
 body[data-game="swat"] .single-intro .primary-button>b{position:absolute;top:-9px;left:12px;padding:3px 5px;border:2px solid var(--ink);color:var(--ink);background:var(--yellow);font:950 7px/1 monospace;transform:rotate(-5deg)}
@@ -1217,9 +1222,10 @@ body[data-game="swat"] .swat-result-face{
   body[data-game="swat"] .single-intro h1{margin-bottom:10px;font-size:34px}
   .swat-cover-stage{width:92%;min-height:166px}
   body[data-game="swat"] .swat-cover-stage .single-preview img{width:120px;height:120px}
+  .swat-photo-placeholder{width:112px;height:112px}
   .swat-cover-stage>img{top:41px;width:70px;height:70px}
-  body[data-game="swat"] .mini-upload,
-  body[data-game="swat"] .single-intro .primary-button{width:92%}
+body[data-game="swat"] .mini-upload,
+body[data-game="swat"] .single-intro .primary-button{width:92%}
   body[data-game="swat"] .mini-upload{margin-top:9px;padding:6px 8px}
   body[data-game="swat"] .single-intro .primary-button{min-height:42px;margin-top:9px}
   .swat-face-wrap{width:90%;margin-top:36px;border-radius:20px}
